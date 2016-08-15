@@ -9,7 +9,7 @@ Using RNN to predict Epidemic time-series
 Description
 ===========
 
-A LONGER DESCRIPTION OF YOUR PROJECT GOES HERE...
+This project requires a GPU to run properly.
 
 
 Note
