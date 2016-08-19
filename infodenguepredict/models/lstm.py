@@ -46,9 +46,9 @@ def split_data(df, n_weeks=12, ratio=0.8, predict_n=5, Y_column=0):
     #     np.random.shuffle(train)
     # We are predicting only column 0
     X_train = train[:-n_weeks, :n_weeks, :]
-    Y_train = train[n_weeks:, -predict_n:, 0]
+    Y_train = train[n_weeks:, -predict_n:, Y_column]
     X_test = test[:-n_weeks, :n_weeks, :]
-    Y_test = test[n_weeks:, -predict_n:, 0]
+    Y_test = test[n_weeks:, -predict_n:, Y_column]
 
     return X_train, Y_train, X_test, Y_test
 
@@ -81,9 +81,9 @@ def build_model(hidden, features, time_window=10, batch_size=1):
     return model
 
 
-def train(model, X_train, Y_train, batch_size=1, overwrite=True):
+def train(model, X_train, Y_train, batch_size=1, epochs=20, overwrite=True):
     hist = model.fit(X_train, Y_train,
-                     batch_size=batch_size, nb_epoch=20, validation_split=0.05, verbose=1)
+                     batch_size=batch_size, nb_epoch=epochs, validation_split=0.05, verbose=1)
     model.save_weights('trained_model.h5', overwrite=overwrite)
     return hist
 
@@ -95,14 +95,14 @@ def plot_training_history(hist):
     """
     df_vloss = pd.DataFrame(hist.history['val_loss'], columns=['val_loss'])
     df_loss = pd.DataFrame(hist.history['loss'], columns=['loss'])
-    ax = df_vloss.plot();
-    df_loss.plot(ax=ax, grid=True);
+    ax = df_vloss.plot(logy=True);
+    df_loss.plot(ax=ax, grid=True, logy=True);
     P.savefig("training_history.png")
 
 
 def get_example_table(geocode=None):
     """
-    Fetch the data from the database, filters out useless variables, and stack tables from each city horizontally so they can be aligned by time only.
+    Fetch the data from the database, filters out useless variables
     :return: pandas dataframe
     """
     raw_df = get_alerta_table(geocode)
@@ -135,17 +135,34 @@ def normalize_data(df):
 
     return df_norm
 
+def plot_predicted_vs_data(model, Xdata, Ydata, label):
+    P.clf()
+    predicted = model.predict(Xdata, batch_size=BATCH_SIZE, verbose=1)
+    df_predicted = pd.DataFrame(predicted.T)
+    for n in range(df_predicted.shape[1]):
+        P.plot(range(n, n + 5), pd.DataFrame(Ydata.T)[n], 'y-')#, label=label)
+        P.plot(range(n, n + 5), df_predicted[n], 'g:')#, label='predicted')
+    P.grid()
+    P.xlabel('weeks')
+    P.ylabel('normalized incidence')
+    P.legend([label, 'predicted'])
+    P.savefig("{}.png".format(label))
+
 
 if __name__ == "__main__":
     prediction_window = 5  # weeks
-    data = get_example_table(3303609)
+    data = get_example_table(3303609) #Nova Iguaçu: 3303609
     norm_data = normalize_data(data)
+    # print(norm_data.columns, norm_data.shape, list(norm_data.columns).index('casos_est'))
+    # norm_data.casos_est.plot()
+    # P.show()
     X_train, Y_train, X_test, Y_test = split_data(norm_data,
                                                   n_weeks=TIME_WINDOW, ratio=.8,
-                                                  predict_n=prediction_window)
+                                                  predict_n=prediction_window, Y_column=2)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
     model = build_model(HIDDEN, X_train.shape[2], TIME_WINDOW, BATCH_SIZE)
-    history = train(model, X_train, Y_train, batch_size=1)
+    history = train(model, X_train, Y_train, batch_size=1, epochs=30)
     plot_training_history(history)
-
+    plot_predicted_vs_data(model, X_train, Y_train, label='In Sample')
+    plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample')
