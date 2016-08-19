@@ -26,18 +26,15 @@ __license__ = "gpl3"
 _logger = logging.getLogger(__name__)
 
 
-def fib(n):
+def predict(model, test_data):
     """
-    Fibonacci example function
+    generate prediction from existing model based on test data
+    :param model: Trained model saved previously
+    :param test_data: data from which to generate the predictions
+    :return:
 
-    :param n: integer
-    :return: n-th Fibonacci number
     """
-    assert n > 0
-    a, b = 1, 1
-    for i in range(n-1):
-        a, b = b, a+b
-    return a
+    pass
 
 
 def parse_args(args):
@@ -48,16 +45,21 @@ def parse_args(args):
     :return: command line parameters as :obj:`argparse.Namespace`
     """
     parser = argparse.ArgumentParser(
-        description="Just a Fibonnaci demonstration")
+        description="Incidence prediction tool")
     parser.add_argument(
         '--version',
         action='version',
         version='InfoDenguePredict {ver}'.format(ver=__version__))
     parser.add_argument(
-        dest="n",
-        help="n-th Fibonacci number",
-        type=int,
+        dest="m",
+        help="model file",
+        type=str,
         metavar="INT")
+    parser.add_argument(
+        dest="d",
+        help="Test data file (CSV)",
+        type=str
+    )
     parser.add_argument(
         '-v',
         '--verbose',
@@ -78,8 +80,8 @@ def parse_args(args):
 def main(args):
     args = parse_args(args)
     logging.basicConfig(level=args.loglevel, stream=sys.stdout)
-    _logger.debug("Starting crazy calculations...")
-    print("The {}-th Fibonacci number is {}".format(args.n, fib(args.n)))
+    _logger.debug("Generating predition...")
+    print("The predicted incidence is...")
     _logger.info("Script ends here")
 
 

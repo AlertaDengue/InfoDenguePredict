@@ -4,4 +4,6 @@ pandas
 tensorflow
 keras
 seaborn
-
+psycopg2
+sqlalchemy
+python-decouple
