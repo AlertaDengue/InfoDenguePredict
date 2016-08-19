@@ -8,11 +8,21 @@ import pandas as pd
 from sqlalchemy import create_engine
 from decouple import config
 
-def get_alerta_table():
-    conexao = create_engine("postgresql://{}:{}@{}/{}".format(config.PSQL_USER,
-                                          config.PSQL_PASSWORD,
-                                          config.PSQL_HOST,
-                                          config.PSQL_DB))
-    df = pd.read_sql_query('select * from "Municipio"."Historico_alerta"',
-                           conexao, index_col='id')
+def get_alerta_table(municipio=None):
+    """
+    pulls the data from a single city or all cities from the InfoDengue
+    database
+    :param municipio: geocode (one city) or None (all)
+    :return: Pandas dataframe
+    """
+    conexao = create_engine("postgresql://{}:{}@{}/{}".format(config('PSQL_USER'),
+                                          config('PSQL_PASSWORD'),
+                                          config('PSQL_HOST'),
+                                          config('PSQL_DB')))
+    if municipio is None:
+        df = pd.read_sql_query('select * from "Municipio"."Historico_alerta"',
+                                conexao, index_col='id')
+    else:
+        df = pd.read_sql_query('select * from "Municipio"."Historico_alerta" where municipio_geocodigo={}'.format(municipio),
+                               conexao, index_col='id')
     return df

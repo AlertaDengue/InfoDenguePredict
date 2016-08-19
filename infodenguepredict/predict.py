@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 This is predict script. Running it returns the prediction using the selected model
@@ -11,7 +11,6 @@ entry_points section in setup.cfg:
 
 
 """
-from __future__ import division, print_function, absolute_import
 
 import argparse
 import sys

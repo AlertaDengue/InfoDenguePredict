@@ -7,3 +7,4 @@ seaborn
 psycopg2
 sqlalchemy
 python-decouple
+scikit-learn
