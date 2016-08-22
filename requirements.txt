@@ -1,4 +1,10 @@
 # Add your requirements here like:
-# numpy
-# scipy>=0.9
-
+numpy
+pandas
+tensorflow
+keras
+seaborn
+psycopg2
+sqlalchemy
+python-decouple
+scikit-learn
