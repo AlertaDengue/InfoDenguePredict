@@ -2,7 +2,8 @@
 Models
 ======
 
-This section documents the available models.
+This section documents the available models. For quick iteration during development, the modules containing the models
+can be executed directly to test the models.
 
 LSTM
 ----

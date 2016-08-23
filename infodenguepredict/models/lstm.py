@@ -11,8 +11,8 @@ from sklearn.preprocessing import normalize, LabelEncoder
 from time import time
 from infodenguepredict.data.infodengue import get_alerta_table
 
-HIDDEN = 64
-TIME_WINDOW = 12
+HIDDEN = 128
+TIME_WINDOW = 30
 BATCH_SIZE = 1
 
 @property
@@ -106,10 +106,10 @@ def get_example_table(geocode=None):
     :return: pandas dataframe
     """
     raw_df = get_alerta_table(geocode)
-    filtered_df  = raw_df[['data_iniSE', 'SE', 'casos_est', 'casos_est_min', 'casos_est_max',
+    filtered_df  = raw_df[['SE', 'casos_est', 'casos_est_min', 'casos_est_max',
        'casos', 'municipio_geocodigo', 'p_rt1', 'p_inc100k', 'nivel']]
-    filtered_df.data_iniSE = pd.to_datetime(filtered_df.data_iniSE)
-    filtered_df.set_index('data_iniSE')
+    filtered_df['SE'] = [int(str(x)[-2:]) for x in filtered_df.SE]
+
     return filtered_df
 
 
@@ -121,8 +121,7 @@ def normalize_data(df):
     """
     if 'municipio_geocodigo' in df.columns:
         df.pop('municipio_geocodigo')
-    df = df.reset_index()
-    df.pop('data_iniSE')
+
     for col in df.columns:
         if col.startswith('nivel'):
             print(col)
@@ -135,13 +134,13 @@ def normalize_data(df):
 
     return df_norm
 
-def plot_predicted_vs_data(model, Xdata, Ydata, label):
+def plot_predicted_vs_data(model, Xdata, Ydata, label, pred_window):
     P.clf()
     predicted = model.predict(Xdata, batch_size=BATCH_SIZE, verbose=1)
     df_predicted = pd.DataFrame(predicted.T)
     for n in range(df_predicted.shape[1]):
-        P.plot(range(n, n + 5), pd.DataFrame(Ydata.T)[n], 'y-')#, label=label)
-        P.plot(range(n, n + 5), df_predicted[n], 'g:')#, label='predicted')
+        P.plot(range(n, n + pred_window), pd.DataFrame(Ydata.T)[n], 'y-')#, label=label)
+        P.plot(range(n, n + pred_window), df_predicted[n], 'g:')#, label='predicted')
     P.grid()
     P.xlabel('weeks')
     P.ylabel('normalized incidence')
@@ -150,7 +149,7 @@ def plot_predicted_vs_data(model, Xdata, Ydata, label):
 
 
 if __name__ == "__main__":
-    prediction_window = 5  # weeks
+    prediction_window = 2  # weeks
     data = get_example_table(3303609) #Nova Iguaçu: 3303609
     time_index = data.index
     norm_data = normalize_data(data)
@@ -158,12 +157,13 @@ if __name__ == "__main__":
     # norm_data.casos_est.plot()
     # P.show()
     X_train, Y_train, X_test, Y_test = split_data(norm_data,
-                                                  n_weeks=TIME_WINDOW, ratio=.8,
+                                                  n_weeks=TIME_WINDOW, ratio=.7,
                                                   predict_n=prediction_window, Y_column=2)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
     model = build_model(HIDDEN, X_train.shape[2], TIME_WINDOW, BATCH_SIZE)
-    history = train(model, X_train, Y_train, batch_size=1, epochs=50)
+    history = train(model, X_train, Y_train, batch_size=1, epochs=30)
     plot_training_history(history)
-    plot_predicted_vs_data(model, X_train, Y_train, label='In Sample')
-    plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample')
+    plot_predicted_vs_data(model, X_train, Y_train, label='In Sample', pred_window=prediction_window)
+    plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample', pred_window=prediction_window)
+    P.show()

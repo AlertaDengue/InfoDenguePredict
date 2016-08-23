@@ -3,13 +3,13 @@ InfoDenguePredict
 =================
 
 
-Using RNN to predict Epidemic time-series
+COmparing the use of RNN and tradional (auto-regressive) methods to forecast Epidemic time-series
 
 
 Description
 ===========
 
-This project requires a GPU to run properly.
+This project requires a GPU to run properly the LSTM model.
 
 
 Note
