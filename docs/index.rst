@@ -4,6 +4,12 @@ InfoDenguePredict
 
 This is the documentation of **InfoDenguePredict**.
 
+This Project aims to collect models for time series prediction tested and optimized for the **InfoDengue** system series.
+**InfoDengue** is a system that produces continuous epidemic analytics including Nowcasting and Forecasting.
+This package is still in alpha, but it aims to provide a stable API for the generation of forecasts based on the available models
+as well as tools for model comparison and selection. If you want to contribute to this package, please take a look at the
+Contributing section.
+
 .. note::
 
     This is the main page of your project's `Sphinx <http://sphinx-doc.org/>`_
@@ -31,6 +37,8 @@ Contents
 .. toctree::
    :maxdepth: 2
 
+   Models <models>
+   Contributing <contributing>
    License <license>
    Authors <authors>
    Changelog <changes>

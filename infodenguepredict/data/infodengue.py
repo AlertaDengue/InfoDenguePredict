@@ -20,9 +20,10 @@ def get_alerta_table(municipio=None):
                                           config('PSQL_HOST'),
                                           config('PSQL_DB')))
     if municipio is None:
-        df = pd.read_sql_query('select * from "Municipio"."Historico_alerta"',
+        df = pd.read_sql_query('select * from "Municipio"."Historico_alerta" ORDER BY "data_iniSE" ASC;',
                                 conexao, index_col='id')
     else:
-        df = pd.read_sql_query('select * from "Municipio"."Historico_alerta" where municipio_geocodigo={}'.format(municipio),
+        df = pd.read_sql_query('select * from "Municipio"."Historico_alerta" where municipio_geocodigo={} ORDER BY "data_iniSE" ASC;'.format(municipio),
                                conexao, index_col='id')
+    df.set_index('data_iniSE', inplace=True)
     return df
