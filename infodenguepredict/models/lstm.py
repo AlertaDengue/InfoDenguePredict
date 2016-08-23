@@ -152,6 +152,7 @@ def plot_predicted_vs_data(model, Xdata, Ydata, label):
 if __name__ == "__main__":
     prediction_window = 5  # weeks
     data = get_example_table(3303609) #Nova Iguaçu: 3303609
+    time_index = data.index
     norm_data = normalize_data(data)
     # print(norm_data.columns, norm_data.shape, list(norm_data.columns).index('casos_est'))
     # norm_data.casos_est.plot()
