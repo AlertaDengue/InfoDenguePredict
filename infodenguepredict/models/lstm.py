@@ -4,6 +4,7 @@ import pylab as P
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
 from keras.models import Sequential
+from keras.utils.visualize_util import plot
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn import datasets
@@ -12,7 +13,7 @@ from time import time
 from infodenguepredict.data.infodengue import get_alerta_table
 
 HIDDEN = 128
-TIME_WINDOW = 30
+TIME_WINDOW = 52
 BATCH_SIZE = 1
 
 @property
@@ -78,6 +79,7 @@ def build_model(hidden, features, time_window=10, batch_size=1):
     start = time()
     model.compile(loss="mse", optimizer="rmsprop")
     print("Compilation Time : ", time() - start)
+    plot(model, to_file='model.png')
     return model
 
 
@@ -148,6 +150,10 @@ def plot_predicted_vs_data(model, Xdata, Ydata, label, pred_window):
     P.savefig("{}.png".format(label))
 
 
+def loss_and_metrics(model, Xtest, Ytest):
+    print(model.evaluate(Xtest, Ytest, batch_size=1))
+
+
 if __name__ == "__main__":
     prediction_window = 2  # weeks
     data = get_example_table(3303609) #Nova Iguaçu: 3303609
@@ -163,6 +169,7 @@ if __name__ == "__main__":
 
     model = build_model(HIDDEN, X_train.shape[2], TIME_WINDOW, BATCH_SIZE)
     history = train(model, X_train, Y_train, batch_size=1, epochs=30)
+    loss_and_metrics(model, X_test, Y_test)
     plot_training_history(history)
     plot_predicted_vs_data(model, X_train, Y_train, label='In Sample', pred_window=prediction_window)
     plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample', pred_window=prediction_window)
