@@ -11,7 +11,7 @@ from sklearn.preprocessing import normalize, LabelEncoder
 from time import time
 from infodenguepredict.data.infodengue import get_alerta_table
 
-HIDDEN = 32
+HIDDEN = 64
 TIME_WINDOW = 12
 BATCH_SIZE = 1
 
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
     model = build_model(HIDDEN, X_train.shape[2], TIME_WINDOW, BATCH_SIZE)
-    history = train(model, X_train, Y_train, batch_size=1, epochs=30)
+    history = train(model, X_train, Y_train, batch_size=1, epochs=50)
     plot_training_history(history)
     plot_predicted_vs_data(model, X_train, Y_train, label='In Sample')
     plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample')
