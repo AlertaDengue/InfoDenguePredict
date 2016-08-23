@@ -1,7 +1,6 @@
 # Add your requirements here like:
 numpy
 pandas
-tensorflow
 keras
 seaborn
 psycopg2
