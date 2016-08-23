@@ -10,4 +10,5 @@ python-decouple
 scikit-learn
 pyflux
 statsmodels
+rpy2
 
