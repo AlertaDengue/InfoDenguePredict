@@ -3,4 +3,4 @@ sphinx-autobuild
 numpy
 pandas
 sqlalchemy
-pyflux
+
