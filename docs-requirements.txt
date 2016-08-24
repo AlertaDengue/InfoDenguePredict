@@ -2,7 +2,6 @@ Sphinx
 sphinx-autobuild
 numpy
 pandas
-rpy2
 decouple
 matplotlib
 sqlalchemy
