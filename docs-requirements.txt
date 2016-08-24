@@ -1,3 +1,5 @@
 Sphinx
 sphinx-autobuild
 pandas
+sqlalchemy
+pyflux
