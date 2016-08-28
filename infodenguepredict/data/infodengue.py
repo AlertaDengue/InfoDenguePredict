@@ -27,3 +27,9 @@ def get_alerta_table(municipio=None):
                                conexao, index_col='id')
     df.set_index('data_iniSE', inplace=True)
     return df
+
+def get_temperature_data(municipio=None):
+    pass
+
+def get_tweet_data(municipio=None):
+    pass

@@ -3,7 +3,8 @@ InfoDenguePredict
 =================
 
 
-COmparing the use of RNN and tradional (auto-regressive) methods to forecast Epidemic time-series
+Comparing the use of RNN and tradional (auto-regressive) methods to forecast Epidemic time-series
+Documentation is available `here <http://infodenguepredict.readthedocs.io>`
 
 
 Description

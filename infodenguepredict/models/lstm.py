@@ -16,10 +16,6 @@ HIDDEN = 128
 TIME_WINDOW = 52
 BATCH_SIZE = 1
 
-@property
-def Model():
-    return build_model(HIDDEN, NFEATURES, TIME_WINDOW, BATCH_SIZE)
-
 
 def split_data(df, n_weeks=12, ratio=0.8, predict_n=5, Y_column=0):
     """
