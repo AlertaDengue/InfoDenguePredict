@@ -5,4 +5,4 @@ pandas
 python-decouple
 matplotlib
 sqlalchemy
-
+qgrid
