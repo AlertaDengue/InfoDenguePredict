@@ -10,10 +10,10 @@ from sklearn.metrics import classification_report, confusion_matrix
 from sklearn import datasets
 from sklearn.preprocessing import normalize, LabelEncoder
 from time import time
-from infodenguepredict.data.infodengue import get_alerta_table
+from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data
 
 HIDDEN = 128
-TIME_WINDOW = 52
+TIME_WINDOW = 22
 BATCH_SIZE = 1
 
 
@@ -111,6 +111,22 @@ def get_example_table(geocode=None):
     return filtered_df
 
 
+def get_complete_table(geocode=None):
+    """
+    Extends Example table with temperature, humidity atmospheric pressure and Tweets
+    :param geocode:
+    :return:
+    """
+    df = get_example_table(geocode=geocode)
+    T = get_temperature_data(geocode)
+    Tw = get_tweet_data(municipio=geocode)
+    Tw.pop('Municipio_geocodigo')
+    Tw.pop('CID10_codigo')
+    complete = df.join(T).join(Tw).dropna()
+    return complete
+
+
+
 def normalize_data(df):
     """
     Normalize features in the example table
@@ -135,7 +151,7 @@ def normalize_data(df):
 def plot_predicted_vs_data(model, Xdata, Ydata, label, pred_window):
     P.clf()
     predicted = model.predict(Xdata, batch_size=BATCH_SIZE, verbose=1)
-    df_predicted = pd.DataFrame(predicted.T)
+    df_predicted = pd.DataFrame(predicted).T
     for n in range(df_predicted.shape[1]):
         P.plot(range(n, n + pred_window), pd.DataFrame(Ydata.T)[n], 'y-')#, label=label)
         P.plot(range(n, n + pred_window), df_predicted[n], 'g:')#, label='predicted')
@@ -152,7 +168,8 @@ def loss_and_metrics(model, Xtest, Ytest):
 
 if __name__ == "__main__":
     prediction_window = 2  # weeks
-    data = get_example_table(3303609) #Nova Iguaçu: 3303609
+    data = get_example_table(3304557) #Nova Iguaçu: 3303500
+    # data = get_complete_table(3304557)
     time_index = data.index
     norm_data = normalize_data(data)
     # print(norm_data.columns, norm_data.shape, list(norm_data.columns).index('casos_est'))

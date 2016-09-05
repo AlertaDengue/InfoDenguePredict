@@ -2,11 +2,13 @@
 Tests related to data fetching code
 """
 
-__author__ = 'fccoelho@gmail.com'
-
 import unittest
 from infodenguepredict.data.infodengue import get_temperature_data, get_alerta_table, get_tweet_data
 import pandas as pd
+
+
+__author__ = 'fccoelho@gmail.com'
+
 
 class TestInfodengue(unittest.TestCase):
     def test_temp_data(self):
