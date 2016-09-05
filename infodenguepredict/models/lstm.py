@@ -13,7 +13,7 @@ from time import time
 from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data
 
 HIDDEN = 128
-TIME_WINDOW = 22
+TIME_WINDOW = 52
 BATCH_SIZE = 1
 
 
