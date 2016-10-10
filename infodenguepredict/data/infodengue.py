@@ -1,7 +1,7 @@
 """
 This module performs data fetching from the Infodengue database.
 for remote database access, we recommend establishing an SSH tunnel:
-ssh -f user@remote-server -L 5432:localhost:5432 -N
+ ssh -f user@remote-server -L 5432:localhost:5432 -N
 """
 
 import pandas as pd

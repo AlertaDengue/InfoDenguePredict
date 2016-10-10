@@ -153,9 +153,10 @@ def plot_predicted_vs_data(model, Xdata, Ydata, label, pred_window):
     predicted = model.predict(Xdata, batch_size=BATCH_SIZE, verbose=1)
     df_predicted = pd.DataFrame(predicted).T
     for n in range(df_predicted.shape[1]):
-        P.plot(range(n, n + pred_window), pd.DataFrame(Ydata.T)[n], 'y-')#, label=label)
-        P.plot(range(n, n + pred_window), df_predicted[n], 'g:')#, label='predicted')
+        P.plot(range(n, n + pred_window), pd.DataFrame(Ydata.T)[n], 'y-')
+        P.plot(range(n, n + pred_window), df_predicted[n], 'g:')
     P.grid()
+    P. title(label)
     P.xlabel('weeks')
     P.ylabel('normalized incidence')
     P.legend([label, 'predicted'])
@@ -168,8 +169,8 @@ def loss_and_metrics(model, Xtest, Ytest):
 
 if __name__ == "__main__":
     prediction_window = 2  # weeks
-    data = get_example_table(3304557) #Nova Iguaçu: 3303500
-    # data = get_complete_table(3304557)
+    # data = get_example_table(3304557) #Nova Iguaçu: 3303500
+    data = get_complete_table(3304557)
     time_index = data.index
     norm_data = normalize_data(data)
     # print(norm_data.columns, norm_data.shape, list(norm_data.columns).index('casos_est'))
@@ -182,6 +183,9 @@ if __name__ == "__main__":
 
     model = build_model(HIDDEN, X_train.shape[2], TIME_WINDOW, BATCH_SIZE)
     history = train(model, X_train, Y_train, batch_size=1, epochs=30)
+    model.save('lstm_model')
+    ## plotting results
+    print(model.summary())
     loss_and_metrics(model, X_test, Y_test)
     plot_training_history(history)
     plot_predicted_vs_data(model, X_train, Y_train, label='In Sample', pred_window=prediction_window)
