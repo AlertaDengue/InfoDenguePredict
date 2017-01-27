@@ -10,10 +10,10 @@ from sklearn.metrics import classification_report, confusion_matrix
 from sklearn import datasets
 from sklearn.preprocessing import normalize, LabelEncoder
 from time import time
-from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data
+from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, build_multicity_dataset
 
-HIDDEN = 128
-TIME_WINDOW = 52
+HIDDEN = 256
+TIME_WINDOW = 12
 BATCH_SIZE = 1
 
 
@@ -95,7 +95,7 @@ def plot_training_history(hist):
     df_loss = pd.DataFrame(hist.history['loss'], columns=['loss'])
     ax = df_vloss.plot(logy=True);
     df_loss.plot(ax=ax, grid=True, logy=True);
-    P.savefig("training_history.png")
+    P.savefig("LSTM_training_history.png")
 
 
 def get_example_table(geocode=None):
@@ -138,7 +138,7 @@ def normalize_data(df):
 
     for col in df.columns:
         if col.startswith('nivel'):
-            print(col)
+            # print(col)
             le = LabelEncoder()
             le.fit(df[col])
             df[col] = le.transform(df[col])
@@ -154,13 +154,13 @@ def plot_predicted_vs_data(model, Xdata, Ydata, label, pred_window):
     df_predicted = pd.DataFrame(predicted).T
     for n in range(df_predicted.shape[1]):
         P.plot(range(n, n + pred_window), pd.DataFrame(Ydata.T)[n], 'y-')
-        P.plot(range(n, n + pred_window), df_predicted[n], 'g:')
+        P.plot(range(n, n + pred_window), df_predicted[n], 'g:o')
     P.grid()
     P. title(label)
     P.xlabel('weeks')
     P.ylabel('normalized incidence')
     P.legend([label, 'predicted'])
-    P.savefig("{}.png".format(label))
+    P.savefig("lstm_{}.png".format(label))
 
 
 def loss_and_metrics(model, Xtest, Ytest):
@@ -170,15 +170,18 @@ def loss_and_metrics(model, Xtest, Ytest):
 if __name__ == "__main__":
     prediction_window = 2  # weeks
     # data = get_example_table(3304557) #Nova Iguaçu: 3303500
-    data = get_complete_table(3304557)
+    # data = get_complete_table(3304557)
+    data = build_multicity_dataset('RJ')
+    print(data.shape)
+    target_col = list(data.columns).index('casos_est_3303500')
     time_index = data.index
     norm_data = normalize_data(data)
-    # print(norm_data.columns, norm_data.shape, list(norm_data.columns).index('casos_est'))
+    print(norm_data.columns, norm_data.shape)
     # norm_data.casos_est.plot()
     # P.show()
     X_train, Y_train, X_test, Y_test = split_data(norm_data,
                                                   n_weeks=TIME_WINDOW, ratio=.7,
-                                                  predict_n=prediction_window, Y_column=2)
+                                                  predict_n=prediction_window, Y_column=target_col)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
     model = build_model(HIDDEN, X_train.shape[2], TIME_WINDOW, BATCH_SIZE)

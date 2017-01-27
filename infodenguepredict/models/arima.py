@@ -16,6 +16,8 @@ if __name__ == "__main__":
     data = get_alerta_table(3303609)  # Nova Iguaçu: 3303609
     data.casos_est.plot()
     model = build_model(data, 4, 4, 1, 'casos')
+    print(model.latent_variables)
+    model.adjust_prior(0, pf.Normal(2,1))
     fit = model.fit('BBVI', iterations=1000, optimizer='RMSProp')
     print(fit.summary())
     model.plot_fit()
