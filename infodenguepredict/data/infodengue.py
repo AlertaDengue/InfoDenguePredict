@@ -89,4 +89,5 @@ def build_multicity_dataset(state) -> pd.DataFrame:
         del full_data[col]
     full_data = full_data.pivot(index=full_data.index, columns='municipio_geocodigo')
     full_data.columns = ['{}_{}'.format(*col).strip() for col in full_data.columns.values]
+
     return full_data
