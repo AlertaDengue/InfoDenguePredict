@@ -21,6 +21,6 @@ if __name__ == "__main__":
     fit = model.fit('BBVI', iterations=1000, optimizer='RMSProp')
     print(fit.summary())
     model.plot_fit()
-    plt.savefig('arima_in_sample.svg')
+    plt.savefig('arima_in_sample.png')
     model.plot_predict(h=52, past_values=52)
-    plt.savefig('arima_prediction.svg')
+    plt.savefig('arima_prediction.png')
