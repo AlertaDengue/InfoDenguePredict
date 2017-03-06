@@ -25,6 +25,7 @@ class TestInfodengue(unittest.TestCase):
         df = get_alerta_table(3303609)
         self.assertIsInstance(df, pd.DataFrame)
         self.assertGreater(df.size, 0)
+        self.assertGreater(df.casos.sum(), 0)
         self.assertEquals(df.municipio_geocodigo.value_counts().size, 1)
 
     def test_alerta_all_munic(self):
