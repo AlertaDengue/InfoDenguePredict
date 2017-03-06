@@ -1,5 +1,5 @@
 """
-Vector Autogregression using statsmodels
+Dynamic Vector Autogregression using statsmodels
 http://statsmodels.sourceforge.net/devel/vector_ar.html
 """
 
@@ -12,33 +12,32 @@ import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_alerta_table, build_multicity_dataset
 
 
-def build_model(data):
+def build_model(data, lag_order, window_type):
     data.index = pd.DatetimeIndex(data.index)
-    model = VAR(data)
+    model = DynamicVAR(data, lag_order=2, window=12, window_type=window_type)
     return model
 
 
 if __name__ == "__main__":
-    prediction_window = 5  # weeks
+    prediction_window = 2  # weeks
+    scenario = 'local'
     scenario = 'global'
     if scenario == 'local':
         data = get_alerta_table(3303500)  # Nova Iguaçu: 3303500
         data = data[['casos', 'nivel']]
     else:
         data = build_multicity_dataset('RJ')
-        data = data[[col for col in data.columns if col.startswith('casos') and not col.startswith('casos_est')]]
+        data = data[[col for col in data.columns if col.startswith('casos') and not col.startswith('casos_est')][:8]]
     print(data.info())
     # data.casos_est.plot(title="Series")
-    model = build_model(data)
-    fit = model.fit(maxlags=11, ic='aic') # 4 lags
-    print(fit.summary())
-    fit.plot()
-    fit.plot_acorr()
+    model = build_model(data, 12, 'expanding')
+    # fit = model.fit(maxlags=11, ic='aic') # 4 lags
+    # print(model.coefs.minor_xs('casos_3303500').info())
 
-    plt.figure()
-    lag_order = fit.k_ar
-    forecast = fit.forecast(data.values[-lag_order:], prediction_window)
+
+
+    forecast = model.forecast(prediction_window)
     print(forecast)
-    fit.plot_forecast(prediction_window)
-
+    model.plot_forecast(prediction_window)
+    plt.savefig('DVAR_forecast_{}_weeks.png'.format(prediction_window))
     plt.show()
