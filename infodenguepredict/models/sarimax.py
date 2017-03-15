@@ -13,7 +13,8 @@ from infodenguepredict.data.infodengue import get_alerta_table
 
 def build_model(data):
     model = sm.tsa.statespace.SARIMAX(endog=data.casos, exog=data[['casos_est', 'casos_est_max', 'p_rt1', 'p_inc100k', 'nivel']],
-                                      order=(1, 0, 1),
+                                      order=(1, 1, 1),
+                                      seasonal_order=(1,1,1,52),
                                       time_varying_regression=False,
                                       mle_regression=True,
                                       )
@@ -36,15 +37,17 @@ if __name__ == "__main__":
     print(fit.summary())
 
     plt.figure()
-    predict = fit.get_prediction(end='2017-03-01', dynamic=False)
+    predict = fit.get_prediction(start='2017-01-01', end='2017-03-01', dynamic=False)
     predict_ci = predict.conf_int()
-    predictdy = fit.get_prediction(end='2017-03-01', dynamic=True)
+    predictdy = fit.get_prediction(start='2017-01-01', end='2017-02-26', dynamic=True)
     predictdy_ci = predictdy.conf_int()
     data.casos.plot(style='o',label='obs')
     predict.predicted_mean.plot(style='r--', label='one step ahead')
     predictdy.predicted_mean.plot(style='g', label='Dynamic forecast')
     plt.fill_between(predict_ci.index, predict_ci.ix[:, 0], predict_ci.ix[:, 1], color='r', alpha=0.1)
     plt.fill_between(predictdy_ci.index, predictdy_ci.ix[:, 0], predictdy_ci.ix[:, 1], color='g', alpha=0.1)
+    #forecast = fit.forecast(10)
+    #forecast.plot(style='b;', label='forecast')
     plt.legend(loc=0)
     plt.show()
 
