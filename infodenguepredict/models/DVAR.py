@@ -21,7 +21,7 @@ def build_model(data, lag_order, window_type):
 if __name__ == "__main__":
     prediction_window = 2  # weeks
     scenario = 'local'
-    scenario = 'global'
+    # scenario = 'global'
     if scenario == 'local':
         data = get_alerta_table(3303500)  # Nova Iguaçu: 3303500
         data = data[['casos', 'nivel']]
@@ -29,7 +29,8 @@ if __name__ == "__main__":
         data = build_multicity_dataset('RJ')
         data = data[[col for col in data.columns if col.startswith('casos') and not col.startswith('casos_est')][:8]]
     print(data.info())
-    # data.casos_est.plot(title="Series")
+    #TODO: Apply Seasonal differencing to series
+    # data.casos.plot(title="Series")
     model = build_model(data, 12, 'expanding')
     # fit = model.fit(maxlags=11, ic='aic') # 4 lags
     # print(model.coefs.minor_xs('casos_3303500').info())
