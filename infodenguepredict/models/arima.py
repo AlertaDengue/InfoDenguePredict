@@ -16,9 +16,11 @@ if __name__ == "__main__":
     data = get_alerta_table(3303609)  # Nova Iguaçu: 3303609
     data.casos_est.plot()
     model = build_model(data, 4, 4, 1, 'casos')
+    print(model.latent_variables)
+    model.adjust_prior(0, pf.Normal(2,1))
     fit = model.fit('BBVI', iterations=1000, optimizer='RMSProp')
     print(fit.summary())
     model.plot_fit()
-    plt.savefig('arima_in_sample.svg')
+    plt.savefig('arima_in_sample.png')
     model.plot_predict(h=52, past_values=52)
-    plt.savefig('arima_prediction.svg')
+    plt.savefig('arima_prediction.png')

@@ -1,8 +1,11 @@
 __author__ = 'fccoelho'
 
 import unittest
-from infodenguepredict.models import lstm
+
 import pandas as pd
+
+from infodenguepredict.models.deeplearning import lstm
+
 
 class TestDataPrep(unittest.TestCase):
     def test_get_data_all(self):

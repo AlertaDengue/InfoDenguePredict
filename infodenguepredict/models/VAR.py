@@ -18,15 +18,19 @@ def build_model(data, lags):
 
 if __name__ == "__main__":
     prediction_window = 5  # weeks
-    data = get_alerta_table(3303609)  # Nova Iguaçu: 3303609
-    data = data[['casos_est', 'p_rt1', 'p_inc100k']]
+    data = get_alerta_table(3303500) # Nova Iguaçu: 3303500
+    # data = build_multicity_dataset('RJ')
+    data.casos = data.casos.astype('float')
+    data = data[['casos', 'nivel']]
     # print(data.info())
-    data.casos_est.plot()
-    model = build_model(data, lags=4)
-    fit = model.fit()#'BBVI',iterations=1000,optimizer='RMSProp')
+    # data.casos.plot(title="series")
+    model = build_model(data, lags=12)
+    fit = model.fit('BBVI',iterations=1000,optimizer='RMSProp')
     print(fit.summary())
     model.plot_fit()
-    plt.savefig('VAR_in_sample.svg')
-    model.plot_predict(h=52, past_values=104)
-    plt.savefig('VAR_prediction.svg')
+    plt.savefig('VAR_in_sample.png')
+    model.plot_predict(h=5, past_values=104)
+    plt.savefig('VAR_prediction.png')
+    print(model.predict(h=15))
+    model.plot_predict_is(h=15)
     # plt.show()

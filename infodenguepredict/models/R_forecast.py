@@ -33,7 +33,7 @@ if __name__ == "__main__":
     data = get_alerta_table(3303609)  # Nova Iguaçu: 3303609
     forecast = importr('forecast')
     ts = r('ts')
-    rdata = ts(data.casos_est.values, frequency=1)
+    rdata = ts(data.casos.values, frequency=1)
 
     model = build_model(rdata=rdata)
     fcast = forecast.forecast(model, h=5, level=95.0)
