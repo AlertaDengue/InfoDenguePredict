@@ -12,4 +12,5 @@ statsmodels
 rpy2
 pydot
 h5py
+geopandas
 fbprophet
