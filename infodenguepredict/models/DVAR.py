@@ -24,10 +24,11 @@ if __name__ == "__main__":
     # scenario = 'global'
     if scenario == 'local':
         data = get_alerta_table(3303500)  # Nova Iguaçu: 3303500
-        data = data[['casos', 'nivel']]
+        data = data[['casos', 'nivel', 'p_rt1']]
     else:
         data = build_multicity_dataset('RJ')
-        data = data[[col for col in data.columns if col.startswith('casos') and not col.startswith('casos_est')][:8]]
+        data = data[[col for col in data.columns if col.startswith('casos') and not col.startswith('casos_est')][:3]]
+        # data = data.diff()
     print(data.info())
     #TODO: Apply Seasonal differencing to series
     # data.casos.plot(title="Series")

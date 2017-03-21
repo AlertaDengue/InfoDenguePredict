@@ -12,3 +12,4 @@ statsmodels
 rpy2
 pydot
 h5py
+fbprophet
