@@ -41,3 +41,8 @@ cover/*
 MANIFEST
 
 infodenguepredict/data/settings.ini
+
+#image files
+*.png
+*.jpg
+*.svg
