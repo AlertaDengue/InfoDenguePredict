@@ -4,7 +4,7 @@ from matplotlib import pyplot as P
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
 from keras.models import Sequential
-from keras.utils.visualize_util import plot
+from keras.utils.vis_utils import plot_model
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn import datasets
@@ -46,7 +46,7 @@ def build_model(hidden, features, look_back=10, batch_size=1):
     start = time()
     model.compile(loss="mse", optimizer="rmsprop")
     print("Compilation Time : ", time() - start)
-    plot(model, to_file='LSTM_model.png')
+    plot_model(model, to_file='LSTM_model.png')
     return model
 
 
