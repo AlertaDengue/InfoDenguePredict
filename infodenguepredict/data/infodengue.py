@@ -56,6 +56,7 @@ def get_temperature_data(municipio=None):
                                 conexao, index_col='id')
     else:
         df = pd.read_sql_query('select cwu.id, temp_min, temp_max, umid_min, pressao_min, data_dia FROM "Municipio"."Clima_wu" cwu JOIN "Dengue_global".regional_saude rs ON cwu."Estacao_wu_estacao_id"=rs.codigo_estacao_wu WHERE rs.municipio_geocodigo={} ORDER BY data_dia ASC;'.format(municipio), conexao, index_col='id')
+    df.data_dia = pd.to_datetime(df.data_dia)
     df.set_index('data_dia', inplace=True)
     return df
 
@@ -76,6 +77,7 @@ def get_tweet_data(municipio=None) -> pd.DataFrame:
     else:
         df = pd.read_sql_query('select * FROM "Municipio"."Tweet" WHERE "Municipio_geocodigo"={} ORDER BY data_dia ASC;'.format(municipio), conexao, index_col='id')
         del df['Municipio_geocodigo']
+    df.data_dia = pd.to_datetime(df.data_dia)
     df.set_index('data_dia', inplace=True)
     return df
 
