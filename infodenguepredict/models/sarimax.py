@@ -14,7 +14,7 @@ from infodenguepredict.data.infodengue import get_alerta_table
 def build_model(data):
     model = sm.tsa.statespace.SARIMAX(endog=data.casos, exog=data[['casos_est', 'casos_est_max', 'p_inc100k', 'nivel']],
                                       order=(1, 1, 1),
-                                      seasonal_order=(1, 1, 1, 52),
+                                      seasonal_order=(1, 1 , 1 , 52),
                                       time_varying_regression=True,
                                       mle_regression=False,
                                       enforce_stationarity=False
@@ -38,9 +38,9 @@ if __name__ == "__main__":
     print(fit.summary())
 
     plt.figure()
-    predict = fit.get_prediction(dynamic=False)
+    predict = fit.get_prediction(start='2017-01-01', dynamic=False)
     predict_ci = predict.conf_int()
-    predictdy = fit.get_prediction(dynamic=True)
+    predictdy = fit.get_prediction(start='2017-01-01', dynamic=True)
     predictdy_ci = predictdy.conf_int()
     data.casos.plot(style='o',label='obs')
     predict.predicted_mean.plot(style='r--', label='one step ahead')
