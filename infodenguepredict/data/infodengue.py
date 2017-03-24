@@ -35,6 +35,7 @@ def get_alerta_table(municipio=None, state=None):
     else:
         df = pd.read_sql_query('select * from "Municipio"."Historico_alerta" where municipio_geocodigo={} ORDER BY "data_iniSE" ASC;'.format(municipio),
                                conexao, index_col='id')
+    df.data_iniSE = pd.to_datetime(df.data_iniSE)
     df.set_index('data_iniSE', inplace=True)
     return df
 
@@ -54,7 +55,7 @@ def get_temperature_data(municipio=None):
         df = pd.read_sql_query('select * from "Municipio"."Clima_wu" ORDER BY "data_dia" ASC;',
                                 conexao, index_col='id')
     else:
-        df = pd.read_sql_query('select cwu.id, temp_min, umid_min, pressao_min, data_dia FROM "Municipio"."Clima_wu" cwu JOIN "Dengue_global".regional_saude rs ON cwu."Estacao_wu_estacao_id"=rs.codigo_estacao_wu WHERE rs.municipio_geocodigo={} ORDER BY data_dia ASC;'.format(municipio), conexao, index_col='id')
+        df = pd.read_sql_query('select cwu.id, temp_min, temp_max, umid_min, pressao_min, data_dia FROM "Municipio"."Clima_wu" cwu JOIN "Dengue_global".regional_saude rs ON cwu."Estacao_wu_estacao_id"=rs.codigo_estacao_wu WHERE rs.municipio_geocodigo={} ORDER BY data_dia ASC;'.format(municipio), conexao, index_col='id')
     df.set_index('data_dia', inplace=True)
     return df
 
@@ -74,6 +75,7 @@ def get_tweet_data(municipio=None) -> pd.DataFrame:
                                 conexao, index_col='id')
     else:
         df = pd.read_sql_query('select * FROM "Municipio"."Tweet" WHERE "Municipio_geocodigo"={} ORDER BY data_dia ASC;'.format(municipio), conexao, index_col='id')
+        del df['Municipio_geocodigo']
     df.set_index('data_dia', inplace=True)
     return df
 
@@ -91,3 +93,12 @@ def build_multicity_dataset(state) -> pd.DataFrame:
     full_data.columns = ['{}_{}'.format(*col).strip() for col in full_data.columns.values]
 
     return full_data
+
+
+def combined_data(municipio):
+    alerta_table  = get_alerta_table(municipio=municipio)
+    tweets = get_tweet_data(municipio)
+    tweets = tweets.resample('W', how='sum')
+    weather = get_temperature_data(municipio)
+    weather = weather.resample('W', how='mean')
+

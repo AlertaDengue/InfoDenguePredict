@@ -11,14 +11,16 @@ import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_alerta_table
 
 
-def build_model(data):
-    model = sm.tsa.statespace.SARIMAX(endog=data.casos, exog=data[['casos_est', 'casos_est_max', 'p_inc100k', 'nivel']],
-                                      order=(1, 1, 1),
-                                      seasonal_order=(1, 1 , 1 , 52),
+def build_model(data, endog, exog):
+    model = sm.tsa.statespace.SARIMAX(endog=data[endog],
+                                      exog=None if exog == [] else data[exog], #data[['casos_est', 'casos_est_max', 'p_inc100k', 'nivel']],
+                                      order=(2, 1, 1),
+                                      seasonal_order=(2, 1, 1, 8),
                                       time_varying_regression=True,
                                       mle_regression=False,
                                       enforce_stationarity=False
                                       )
+
 
     return model
 
@@ -26,30 +28,38 @@ def build_model(data):
 if __name__ == "__main__":
     prediction_window = 5  # weeks
     data = get_alerta_table(3304557)  # Nova Iguaçu: 3303609
-    data.casos_est.plot()
+    data.casos.plot()
     # Graph data autocorrelation
     fig, axes = plt.subplots(1, 2, figsize=(15, 4))
 
     fig = sm.graphics.tsa.plot_acf(data.ix[1:, 'casos'], lags=52, ax=axes[0])
     fig = sm.graphics.tsa.plot_pacf(data.ix[1:, 'casos'], lags=52, ax=axes[1])
 
-    model = build_model(data)
-    fit = model.fit(disp=True)  # 'BBVI',iterations=1000,optimizer='RMSProp')
+    model = build_model(data, 'casos', [])
+    fit = model.fit(disp=False)  # 'BBVI',iterations=1000,optimizer='RMSProp')
     print(fit.summary())
 
     plt.figure()
     predict = fit.get_prediction(start='2017-01-01', dynamic=False)
     predict_ci = predict.conf_int()
-    predictdy = fit.get_prediction(start='2017-01-01', dynamic=True)
-    predictdy_ci = predictdy.conf_int()
+    # predictdy = fit.get_prediction(start='2017-01-01', dynamic=True)
+    # predictdy_ci = predictdy.conf_int()
     data.casos.plot(style='o',label='obs')
     predict.predicted_mean.plot(style='r--', label='one step ahead')
-    predictdy.predicted_mean.plot(style='g', label='Dynamic forecast')
+    # predictdy.predicted_mean.plot(style='g', label='Dynamic forecast')
     plt.fill_between(predict_ci.index, predict_ci.ix[:, 0], predict_ci.ix[:, 1], color='r', alpha=0.1)
-    plt.fill_between(predictdy_ci.index, predictdy_ci.ix[:, 0], predictdy_ci.ix[:, 1], color='g', alpha=0.1)
-    #forecast = fit.forecast(10)
-    #forecast.plot(style='b;', label='forecast')
+    # plt.fill_between(predictdy_ci.index, predictdy_ci.ix[:, 0], predictdy_ci.ix[:, 1], color='g', alpha=0.1)
     plt.legend(loc=0)
+    plt.savefig('sarimax_prediction.jpg')
+
+    ## Forecast
+    forecast = fit.get_prediction(start='2017-03-05', end='2017-06-21', dynamic=False)
+    forecast_ci = forecast.conf_int()
+    forecast.predicted_mean.plot(style='b--', label='one step ahead')
+    plt.fill_between(forecast_ci.index, forecast_ci.ix[:, 0], forecast_ci.ix[:, 1], color='b', alpha=0.1)
+    plt.legend(loc=0)
+    plt.title('Out-of-Sample forecast')
+
     plt.show()
 
-    plt.savefig('sarimax_prediction.jpg')
+

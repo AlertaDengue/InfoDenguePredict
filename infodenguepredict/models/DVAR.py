@@ -19,12 +19,12 @@ def build_model(data, lag_order, window_type):
 
 
 if __name__ == "__main__":
-    prediction_window = 2  # weeks
+    prediction_window = 6  # weeks
     scenario = 'local'
     # scenario = 'global'
     if scenario == 'local':
         data = get_alerta_table(3303500)  # Nova Iguaçu: 3303500
-        data = data[['casos', 'nivel', 'p_rt1']]
+        data = data[['casos', 'p_inc100k','nivel']]
     else:
         data = build_multicity_dataset('RJ')
         data = data[[col for col in data.columns if col.startswith('casos') and not col.startswith('casos_est')][:3]]
