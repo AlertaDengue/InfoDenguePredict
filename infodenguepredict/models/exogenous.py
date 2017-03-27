@@ -22,6 +22,7 @@ class ExogenousForecast:
         """
         self.exog = exog
         self.models = {n: None for n in exog.columns}
+        self.fits = {n: None for n in exog.columns}
         self.fitted = False
         if dists is None:
             self.dists = ['gaussian' for i in exog.columns]
@@ -39,8 +40,8 @@ class ExogenousForecast:
             else:
                 self.models[series] = build_GAS_model(data=self.exog, target=series)
         for n, m in self.models.items():
-            self.models[n] = delayed(m.fit)()
-        dask.compute(*self.models.values())
+            self.fits[n] = m.fit() #delayed(m.fit)()
+        # dask.compute(*self.models.values())
         self.fitted = True
 
     def get_forecast(self, N):
@@ -50,10 +51,10 @@ class ExogenousForecast:
         forecasts = {}
         for n, m in self.models.items():
             print(type)
-            forecasts[n] = delayed(m.forecast)(N)
+            forecasts[n] = delayed(m.predict)(N)
         dask.compute(*forecasts.values())
 
-        return dask.DataFrame(forecasts)
+        return pd.DataFrame(forecasts)
 
 
 
