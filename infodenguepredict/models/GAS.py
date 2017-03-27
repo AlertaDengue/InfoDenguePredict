@@ -19,6 +19,7 @@ if __name__ == "__main__":
     fit = model.fit()#'BBVI',iterations=1000,optimizer='RMSProp')
     print(fit.summary())
     model.plot_fit()
+    model.plot_z(figsize=(15, 5))
     plt.savefig('GAS_in_sample.png')
     data.casos.plot(style='ko')
     model.plot_predict(h=10, past_values=52)
