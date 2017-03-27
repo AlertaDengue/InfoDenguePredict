@@ -50,9 +50,9 @@ class ExogenousForecast:
             self._fit()
         forecasts = {}
         for n, m in self.models.items():
-            print(type)
-            forecasts[n] = delayed(m.predict)(N)
-        dask.compute(*forecasts.values())
+            print(type(m))
+            forecasts[n] = m.predict(N) # delayed(m.predict)(N)
+        # dask.compute(*forecasts.values())
 
         return pd.DataFrame(forecasts)
 
