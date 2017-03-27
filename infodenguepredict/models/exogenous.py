@@ -41,11 +41,27 @@ class ExogenousForecast:
             else:
                 self.models[series] = build_GAS_model(data=self.exog, target=series)
         for n, m in self.models.items():
-            self.fits[n] = m.fit() #delayed(m.fit)()
-        # dask.compute(*self.models.values())
+            self.fits[n] = delayed(m.fit)()
+        dask.compute(*self.models.values())
         self.fitted = True
 
-    def get_forecast(self, N):
+    def print_fit_summary(self, vname):
+        """
+        Prints the summary of the fit of a given exogenous variable
+        :param vname: exogenous variable name present in self.exog
+        :return: None
+        """
+        if not self.fitted:
+            print("You must fit the models first. Run 'get_forecast' first")
+            return
+        print(self.fits[vname].summary())
+
+    def get_forecast(self, N: int) -> pd.DataFrame:
+        """
+        Returns a Dataframe with the N-steps forecasts for all the exogenous variables.
+        :param N: 
+        :return: pandas Dataframe with forecasted series.
+        """
         print("Generating forecasts")
         if not self.fitted:
             self._fit()
@@ -53,8 +69,8 @@ class ExogenousForecast:
         for n, m in self.models.items():
             forecasts[n] = m.predict(N) # delayed(m.predict)(N)
         # dask.compute(*forecasts.values())
-        print(m.predict(N))
-        return forecasts
+        # print(m.predict(N))
+        return pd.concat(forecasts.values(), axis=1)
 
 
 
