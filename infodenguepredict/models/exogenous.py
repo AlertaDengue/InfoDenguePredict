@@ -44,15 +44,16 @@ class ExogenousForecast:
         self.fitted = True
 
     def get_forecast(self, N):
+        print("Generating forecasts")
         if not self.fitted:
             self._fit()
         forecasts = {}
         for n, m in self.models.items():
-            print(type(m))
+            print(type)
             forecasts[n] = delayed(m.forecast)(N)
         dask.compute(*forecasts.values())
 
-        return pd.DataFrame(forecasts)
+        return dask.DataFrame(forecasts)
 
 
 
@@ -68,6 +69,6 @@ def build_GAS_model(data, ar=2, sc=4, family=pf.families.Poisson, target=None):
 
 if __name__ == "__main__":
     data = build_multicity_dataset('RJ')
-    EF = ExogenousForecast(data)
+    EF = ExogenousForecast(data[data.columns[:3]])
     df = EF.get_forecast(6)
     print(df.head)
