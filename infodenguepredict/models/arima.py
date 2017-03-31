@@ -13,7 +13,7 @@ def build_model(data, ar=4, ma=4, integ=0, target=None):
 
 if __name__ == "__main__":
     prediction_window = 5  # weeks
-    data = get_alerta_table(3303609)  # Nova Iguaçu: 3303609
+    data = get_alerta_table(3304557)  # Nova Iguaçu: 3303609
     data.casos_est.plot()
     model = build_model(data, 2, 2, 1, 'casos')
     print(model.latent_variables)
