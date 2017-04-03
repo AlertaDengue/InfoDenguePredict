@@ -33,7 +33,7 @@ if __name__ == "__main__":
     #TODO: Apply Seasonal differencing to series
     # data.casos.plot(title="Series")
     model = build_model(data, 12, 'expanding')
-    # fit = model.fit(maxlags=11, ic='aic') # 4 lags
+    # fit = model.(maxlags=11, ic='aic') # 4 lags
     # print(model.coefs.minor_xs('casos_3303500').info())
 
 
