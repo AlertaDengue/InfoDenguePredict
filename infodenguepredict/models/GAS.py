@@ -14,7 +14,7 @@ def build_model(data, ar=2, sc=4, family=pf.families.Poisson, target=None):
 if __name__ == "__main__":
     prediction_window = 5  # weeks
     data = get_alerta_table(3304557)  # Nova Iguaçu: 3303609
-    data.casos.plot()
+    # data.casos.plot()
     model = build_model(data, ar=2, sc=6, target='casos')
     fit = model.fit()#'BBVI',iterations=1000,optimizer='RMSProp')
     print(fit.summary())
