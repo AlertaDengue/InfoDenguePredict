@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_alerta_table, build_multicity_dataset
 
 
-def hierarchical_clustering(df, method='single'):
+def hierarchical_clustering(df, method='complete'):
     """
 
     :param method: Clustering method
