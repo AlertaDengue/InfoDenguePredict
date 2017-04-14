@@ -17,9 +17,9 @@ def get_alerta_table(municipio=None, state=None):
     :return: Pandas dataframe
     """
     conexao = create_engine("postgresql://{}:{}@{}/{}".format(config('PSQL_USER'),
-                                          config('PSQL_PASSWORD'),
-                                          config('PSQL_HOST'),
-                                          config('PSQL_DB')))
+                                                              config('PSQL_PASSWORD'),
+                                                              config('PSQL_HOST'),
+                                                              config('PSQL_DB')))
     if municipio is None:
         if state == 'RJ':
             sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>3300000 and municipio_geocodigo<4000000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
@@ -33,8 +33,10 @@ def get_alerta_table(municipio=None, state=None):
             raise NameError("{} is not a valid state identifier".format(state))
         df = pd.read_sql_query(sql, conexao, index_col='id')
     else:
-        df = pd.read_sql_query('select * from "Municipio"."Historico_alerta" where municipio_geocodigo={} ORDER BY "data_iniSE" ASC;'.format(municipio),
-                               conexao, index_col='id')
+        df = pd.read_sql_query(
+            'select * from "Municipio"."Historico_alerta" where municipio_geocodigo={} ORDER BY "data_iniSE" ASC;'.format(
+                municipio),
+            conexao, index_col='id')
     df.data_iniSE = pd.to_datetime(df.data_iniSE)
     df.set_index('data_iniSE', inplace=True)
     return df
@@ -53,9 +55,12 @@ def get_temperature_data(municipio=None):
 
     if municipio is None:
         df = pd.read_sql_query('select * from "Municipio"."Clima_wu" ORDER BY "data_dia" ASC;',
-                                conexao, index_col='id')
+                               conexao, index_col='id')
     else:
-        df = pd.read_sql_query('select cwu.id, temp_min, temp_max, umid_min, pressao_min, data_dia FROM "Municipio"."Clima_wu" cwu JOIN "Dengue_global".regional_saude rs ON cwu."Estacao_wu_estacao_id"=rs.codigo_estacao_wu WHERE rs.municipio_geocodigo={} ORDER BY data_dia ASC;'.format(municipio), conexao, index_col='id')
+        df = pd.read_sql_query(
+            'select cwu.id, temp_min, temp_max, umid_min, pressao_min, data_dia FROM "Municipio"."Clima_wu" cwu JOIN "Dengue_global".regional_saude rs ON cwu."Estacao_wu_estacao_id"=rs.codigo_estacao_wu WHERE rs.municipio_geocodigo={} ORDER BY data_dia ASC;'.format(
+                municipio), conexao, index_col='id')
+    df.data_dia = pd.to_datetime(df.data_dia)
     df.set_index('data_dia', inplace=True)
     return df
 
@@ -72,12 +77,35 @@ def get_tweet_data(municipio=None) -> pd.DataFrame:
                                                               config('PSQL_DB')))
     if municipio is None:
         df = pd.read_sql_query('select * from "Municipio"."Tweet" ORDER BY "data_dia" ASC;',
-                                conexao, index_col='id')
+                               conexao, index_col='id')
     else:
-        df = pd.read_sql_query('select * FROM "Municipio"."Tweet" WHERE "Municipio_geocodigo"={} ORDER BY data_dia ASC;'.format(municipio), conexao, index_col='id')
+        df = pd.read_sql_query(
+            'select * FROM "Municipio"."Tweet" WHERE "Municipio_geocodigo"={} ORDER BY data_dia ASC;'.format(municipio),
+            conexao, index_col='id')
         del df['Municipio_geocodigo']
+    df.data_dia = pd.to_datetime(df.data_dia)
     df.set_index('data_dia', inplace=True)
     return df
+
+
+def get_rain_data(geocode, sensor="chuva"):
+    """
+    Return the series of rain data. for all stations contained in the geocode
+    :param geocode: geocode of a city
+    :param sensor: either "chuva" or "intensidade_precipitaçao"
+    :return: pandas dataframe.
+    """
+    sql = "SELECT * from \"Municipio\".\"Clima_cemaden\" where \"Estacao_cemaden_codestacao\" similar to '{}%' and sensor='{}'".format(
+        geocode, sensor)
+    conexao = create_engine("postgresql://{}:{}@{}/{}".format(config('PSQL_USER'),
+                                                              config('PSQL_PASSWORD'),
+                                                              config('PSQL_HOST'),
+                                                              config('PSQL_DB')))
+    df = pd.read_sql_query(sql)
+    df.datahora = pd.to_datetime(df.datahora)
+    df.set_index('datahora', inplace=True)
+    return df
+
 
 def build_multicity_dataset(state) -> pd.DataFrame:
     """
@@ -96,9 +124,8 @@ def build_multicity_dataset(state) -> pd.DataFrame:
 
 
 def combined_data(municipio):
-    alerta_table  = get_alerta_table(municipio=municipio)
+    alerta_table = get_alerta_table(municipio=municipio)
     tweets = get_tweet_data(municipio)
     tweets = tweets.resample('W', how='sum')
     weather = get_temperature_data(municipio)
     weather = weather.resample('W', how='mean')
-

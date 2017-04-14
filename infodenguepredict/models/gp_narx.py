@@ -13,13 +13,13 @@ def build_model(data, ar=4, kernel=pf.SquaredExponential, target=None):
 
 if __name__ == "__main__":
     prediction_window = 5  # weeks
-    data = get_alerta_table(3303609)  # Nova Iguaçu: 3303609
+    data = get_alerta_table(3304557)  # Nova Iguaçu: 3303609
     data.casos.plot()
     model = build_model(data.casos.values, ar=12, target='casos')
     fit = model.fit()#'BBVI',iterations=1000,optimizer='RMSProp')
     print(fit.summary())
     model.plot_fit()
     plt.savefig('GPNARX_in_sample.svg')
-    model.plot_predict(h=52, past_values=104)
+    model.plot_predict(h=52, past_values=16)
     plt.savefig('GPNARX_prediction.svg')
     # plt.show()
