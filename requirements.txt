@@ -15,5 +15,5 @@ h5py
 geopandas
 fbprophet
 dask
+scipy
 distributed
-
