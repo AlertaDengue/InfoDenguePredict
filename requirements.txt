@@ -14,3 +14,4 @@ pydot
 h5py
 geopandas
 fbprophet
+scipy
