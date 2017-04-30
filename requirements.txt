@@ -17,3 +17,4 @@ fbprophet
 dask
 scipy
 distributed
+pycast
