@@ -35,7 +35,7 @@ if __name__ == "__main__":
     fig = sm.graphics.tsa.plot_acf(data.ix[1:, 'casos'], lags=52, ax=axes[0])
     fig = sm.graphics.tsa.plot_pacf(data.ix[1:, 'casos'], lags=52, ax=axes[1])
 
-    model = build_model(data, 'casos', [])
+    model = build_model(data, 'casos', ['p_rt1'])
     fit = model.fit(disp=False)  # 'BBVI',iterations=1000,optimizer='RMSProp')
     print(fit.summary())
 

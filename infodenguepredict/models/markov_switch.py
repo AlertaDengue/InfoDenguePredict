@@ -14,8 +14,8 @@ from infodenguepredict.data.infodengue import get_alerta_table
 
 def build_model(data):
     model = sm.tsa.regime_switching.markov_autoregression.MarkovAutoregression(endog=data.casos.diff(), k_regimes=2,
-                                                                               exog=data[['p_rt1', 'p_inc100k', 'nivel']],
-                                      order=3)
+                                                                               exog=data[['p_rt1', 'p_inc100k']],
+                                                                                order=2)
 
 
     return model
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     fig = graphics.tsa.plot_pacf(data.ix[1:, 'casos'], lags=52, ax=axes[1])
 
     model = build_model(data)
-    fit = model.fit(cov_type='robust')  # 'BBVI',iterations=1000,optimizer='RMSProp')
+    fit = model.fit()  # 'BBVI',iterations=1000,optimizer='RMSProp')
     print(fit.summary())
     #todo: fix model, not fitting
     plt.figure()

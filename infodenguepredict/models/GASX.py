@@ -25,8 +25,10 @@ if __name__ == "__main__":
     # print(data.info())
     # data.casos.plot()
     #print(Full.info())
-    model = build_model(Full, ar=4, sc=6, formula='casos~1+temp_min+casos_est+p_inc100k+numero+umid_min+pressao_min+numero')
-    fit = model.fit('Laplace')# 'BBVI', iterations=1000, optimizer='RMSProp')
+
+    # Full.to_csv('data.csv.gz', compression='gzip')
+    model = build_model(Full, ar=4, sc=4, formula='casos~1+temp_min+casos_est+p_inc100k+numero+umid_min+pressao_min+numero')
+    fit = model.fit()#'BBVI', iterations=1000, optimizer='RMSProp')
 
     print(fit.summary())
     model.plot_fit()

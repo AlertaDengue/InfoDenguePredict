@@ -10,25 +10,26 @@ from statsmodels.tsa.api import *
 from datetime import datetime
 import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_alerta_table, build_multicity_dataset
+import seaborn
 
 
 def build_model(data, lag_order, window_type):
     data.index = pd.DatetimeIndex(data.index)
-    model = DynamicVAR(data, lag_order=2, window=12, window_type=window_type)
+    model = DynamicVAR(data, lag_order=lag_order, window=12, window_type=window_type)
     return model
 
 
 if __name__ == "__main__":
     prediction_window = 6  # weeks
-    scenario = 'local'
-    # scenario = 'global'
+    # scenario = 'local'
+    scenario = 'global'
     if scenario == 'local':
         data = get_alerta_table(3303500)  # Nova Iguaçu: 3303500
         data = data[['casos', 'p_inc100k','nivel']]
     else:
         data = build_multicity_dataset('RJ')
         data = data[[col for col in data.columns if col.startswith('casos') and not col.startswith('casos_est')][:3]]
-        # data = data.diff()
+        data = data.diff()
     print(data.info())
     #TODO: Apply Seasonal differencing to series
     # data.casos.plot(title="Series")
