@@ -11,15 +11,15 @@ import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_alerta_table
 
 
-def build_model(data, endog, exog):
+def build_model(data, endog, exog, **kwargs):
     model = sm.tsa.statespace.SARIMAX(endog=data[endog],
                                       exog=None if exog == [] else data[exog], #data[['casos_est', 'casos_est_max', 'p_inc100k', 'nivel']],
                                       order=(2, 1, 1),
                                       seasonal_order=(2, 1, 1, 8),
                                       time_varying_regression=True,
                                       mle_regression=False,
-                                      enforce_stationarity=False
-                                      )
+                                      enforce_stationarity=False,
+                                      **kwargs)
 
 
     return model
