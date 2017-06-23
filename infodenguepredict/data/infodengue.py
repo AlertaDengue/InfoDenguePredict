@@ -127,5 +127,9 @@ def combined_data(municipio):
     alerta_table = get_alerta_table(municipio=municipio)
     tweets = get_tweet_data(municipio)
     tweets = tweets.resample('W', how='sum')
+
     weather = get_temperature_data(municipio)
     weather = weather.resample('W', how='mean')
+
+    full_data = pd.concat([alerta_table, tweets, weather], axis=1, join='outer')
+    return full_data
