@@ -90,18 +90,20 @@ def get_tweet_data(municipio=None) -> pd.DataFrame:
 
 def get_rain_data(geocode, sensor="chuva"):
     """
-    Return the series of rain data. for all stations contained in the geocode
+    Return the series of rain data.  for all stations contained in the geocode
     :param geocode: geocode of a city
     :param sensor: either "chuva" or "intensidade_precipitaçao"
     :return: pandas dataframe.
     """
-    sql = "SELECT * from \"Municipio\".\"Clima_cemaden\" where \"Estacao_cemaden_codestacao\" similar to '{}%' and sensor='{}'".format(
-        geocode, sensor)
     conexao = create_engine("postgresql://{}:{}@{}/{}".format(config('PSQL_USER'),
                                                               config('PSQL_PASSWORD'),
                                                               config('PSQL_HOST'),
                                                               config('PSQL_DB')))
-    df = pd.read_sql_query(sql)
+
+    sql = "SELECT * FROM \"Municipio\".\"Clima_cemaden\" WHERE \"Estacao_cemaden_codestacao\" similar to '{}%' and sensor='{}'".format(
+        geocode, sensor)
+    print(sql)
+    df = pd.read_sql_query(sql, conexao, index_col='id')
     df.datahora = pd.to_datetime(df.datahora)
     df.set_index('datahora', inplace=True)
     return df
@@ -127,5 +129,9 @@ def combined_data(municipio):
     alerta_table = get_alerta_table(municipio=municipio)
     tweets = get_tweet_data(municipio)
     tweets = tweets.resample('W', how='sum')
+
     weather = get_temperature_data(municipio)
     weather = weather.resample('W', how='mean')
+
+    full_data = pd.concat([alerta_table, tweets, weather], axis=1, join='inner')
+    return full_data
