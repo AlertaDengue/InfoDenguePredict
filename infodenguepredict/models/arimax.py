@@ -17,7 +17,7 @@ def build_model(data, ar=4, ma=4, integ=0, target=None):
     model = pf.ARIMAX(data=data,
                       # formula='{}~casos_est_min + casos_est_max+ casos+ p_rt1 + p_inc100k +nivel'.format(target),
                       ar=4,
-                      formula='{}~'.format(target) + '+'.join([col for col in data.columns if col != target]),
+                      formula='{}~'.format(target) + '+'.join([col for col in data.columns if col != target][:10]),
                       ma=4, integ=0)
     return model
 

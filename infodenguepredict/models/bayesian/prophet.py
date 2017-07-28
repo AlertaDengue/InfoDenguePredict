@@ -14,6 +14,7 @@ def build_model():
     return Prophet()
 
 if __name__ == "__main__":
+
     prediction_window = 90  # days
     data = get_alerta_table(3304557)  # Nova Iguaçu: 3303609
 

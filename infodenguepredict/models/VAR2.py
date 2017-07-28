@@ -20,7 +20,7 @@ def build_model(data):
 
 if __name__ == "__main__":
     prediction_window = 5  # weeks
-    scenario = 'local'
+    scenario = 'global'
     if scenario == 'local':
         data = get_alerta_table(3303500)  # Nova Iguaçu: 3303500
         data = data[['casos', 'nivel']]

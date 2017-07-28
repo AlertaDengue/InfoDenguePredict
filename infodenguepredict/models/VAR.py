@@ -8,7 +8,7 @@ import pandas as pd
 import pyflux as pf
 from datetime import datetime
 import matplotlib.pyplot as plt
-from infodenguepredict.data.infodengue import get_alerta_table
+from infodenguepredict.data.infodengue import get_alerta_table, build_multicity_dataset
 
 
 def build_model(data, lags):
@@ -18,10 +18,12 @@ def build_model(data, lags):
 
 if __name__ == "__main__":
     prediction_window = 5  # weeks
-    data = get_alerta_table(3304557) # Nova Iguaçu: 3303500
-    # data = build_multicity_dataset('RJ')
-    data.casos = data.casos.astype('float')
-    data = data[['casos', 'nivel']]
+    # data = get_alerta_table(3304557) # Nova Iguaçu: 3303500
+    data = build_multicity_dataset('RJ')
+    data = data[[c for c in data.columns if c.startswith("casos_") and not c.startswith('casos_est')][:10]]
+    data = data.astype(float)
+    # data.casos = data.casos.astype('float')
+    # data = data[['casos', 'nivel']]
     # print(data.info())
     # data.casos.plot(title="series")
     model = build_model(data, lags=12)
