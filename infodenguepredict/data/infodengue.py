@@ -135,3 +135,17 @@ def combined_data(municipio):
 
     full_data = pd.concat([alerta_table, tweets, weather], axis=1, join='inner')
     return full_data
+
+
+def get_cluster_data(geocode, clusters):
+    to_drop = ['SE', 'casos_est_min', 'casos_est_max', 'Localidade_id', 'versao_modelo',
+               'municipio_nome', 'casos_est', 'municipio_geocodigo', 'nivel']
+    cluster = list(filter(lambda x: geocode in x, clusters))[0]
+
+    full_data = pd.DataFrame()
+    for city_code in cluster:
+        tmp = combined_data(city_code).drop(to_drop, axis=1)
+        tmp.columns = ['{}_{}'.format(col, city_code) for col in tmp.columns.values]
+        full_data = pd.concat([tmp, full_data], axis=1).fillna(method='ffill')
+
+    return full_data
