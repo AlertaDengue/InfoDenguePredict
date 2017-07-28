@@ -19,7 +19,6 @@ def alocate_data(state):
         full_city.to_pickle('city_{}.pkl'.format(city))
     return cities_list
 
-@lru_cache()
 def correlation(df_1, df_2):
     corr_list = []
     for col in df_1.columns:
@@ -28,7 +27,6 @@ def correlation(df_1, df_2):
         corr_list.append(corr[0])
     return np.nanmean(corr_list)
 
-@lru_cache()
 def distance(cities_list):
     state_distances = pd.DataFrame(index=cities_list)
 
