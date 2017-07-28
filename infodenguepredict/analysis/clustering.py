@@ -43,3 +43,4 @@ if __name__ == "__main__":
         leaf_font_size=8.,  # font size for the x axis labels
         # labels=labels,
     )
+    plt.show()
