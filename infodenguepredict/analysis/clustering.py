@@ -1,3 +1,4 @@
+import pickle
 import pandas as pd
 import scipy.cluster.hierarchy as hac
 from scipy.spatial import distance as ssd
@@ -18,17 +19,19 @@ def hierarchical_clustering(df, method='complete'):
     return Z, clusters
 
 
-if __name__ == "__main__":
+def create_cluster(state):
     cities_list = alocate_data("RJ")
     dists = distance(cities_list)
     Z, clusters = hierarchical_clustering(dists)
-    # print(len(data.columns), Z.shape)
 
-    # dic = pd.read_excel('../data/codigos_rj.xlsx', names=['city','code'], header=None).set_index(
-    #     'code')
-    # dic.index = dic.index.astype('str')
-    # codes_dict = dic.to_dict()['city']
-    # labels = [codes_dict[str(i)] for i in dists.columns]
+    with open('clusters_{}.pkl'.format('RJ'), 'wb') as fp:
+        pickle.dump(clusters, fp)
+
+    print("{} clusters saved".format(state))
+    return Z
+
+if __name__ == "__main__":
+    Z = create_cluster("RJ")
 
     plt.figure(figsize=(25, 10))
     plt.title('Hierarchical Clustering Dendrogram')
@@ -40,4 +43,3 @@ if __name__ == "__main__":
         leaf_font_size=8.,  # font size for the x axis labels
         # labels=labels,
     )
-    plt.show()
