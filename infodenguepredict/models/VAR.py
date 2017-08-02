@@ -30,11 +30,12 @@ if __name__ == "__main__":
 
     for col in list(filter(lambda x: 'casos' in x, data.columns)):
         data[col] = data[col].astype('float')
+    print(data.values)
     # data = data[['casos', 'nivel']]
     # print(data.info())
     # data.casos.plot(title="series")
 
-    model = build_model(data, lags=12)
+    model = build_model(data+1, lags=12)
     fit = model.fit()#'BBVI',iterations=1000, optimizer='RMSProp')
     print(fit.summary())
 
