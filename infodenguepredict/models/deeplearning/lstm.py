@@ -2,10 +2,10 @@ import numpy as np
 import pandas as pd
 import pickle
 from matplotlib import pyplot as P
-# from keras.layers.core import Dense, Activation, Dropout
-# from keras.layers.recurrent import LSTM
-# from keras.models import Sequential
-# from keras.utils.vis_utils import plot_model
+from keras.layers.core import Dense, Activation, Dropout
+from keras.layers.recurrent import LSTM
+from keras.models import Sequential
+from keras.utils.vis_utils import plot_model
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn import datasets
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     city = 3304557
     state = 'RJ'
 
-    with open('clusters_{}.pkl'.format(state), 'rb') as fp:
+    with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
 
     # data = get_example_table(3304557) #Nova Iguaçu: 3303500
@@ -132,8 +132,9 @@ if __name__ == "__main__":
     data = get_cluster_data(city, clusters)
     print(data.shape)
 
-    target_col = list(data.columns).index('casos_est_3303500')
-    time_index = data.index
+    target_col = list(data.columns).index('casos_{}'.format(city))
+    # print(target_col)
+    # time_index = data.index
     norm_data = normalize_data(data)
     print(norm_data.columns, norm_data.shape)
     # norm_data.casos_est.plot()
