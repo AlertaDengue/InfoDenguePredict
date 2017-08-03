@@ -6,7 +6,7 @@ http://statsmodels.sourceforge.net/devel/vector_ar.html
 import numpy as np
 import pandas as pd
 from statsmodels.tsa.api import *
-# from statsmodels.tsa.vector_ar.var_model import
+from statsmodels.tsa.vector_ar.var_model import VAR
 from datetime import datetime
 import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_alerta_table, build_multicity_dataset
@@ -26,7 +26,7 @@ if __name__ == "__main__":
         data = data[['casos', 'nivel']]
     else:
         data = build_multicity_dataset('RJ')
-        data = data[[col for col in data.columns if col.startswith('casos') and not col.startswith('casos_est')]]
+        data = data[[col for col in data.columns if col.startswith('casos') and not col.startswith('casos_est')]][:5]
     print(data.info())
     # data.casos_est.plot(title="Series")
     model = build_model(data)
