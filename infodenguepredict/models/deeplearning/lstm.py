@@ -19,9 +19,6 @@ TIME_WINDOW = 12
 BATCH_SIZE = 1
 
 
-
-
-
 def build_model(hidden, features, look_back=10, batch_size=1):
     """
     Builds and returns the LSTM model with the parameters given
