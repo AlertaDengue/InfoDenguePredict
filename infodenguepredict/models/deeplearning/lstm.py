@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pickle
 from matplotlib import pyplot as P
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
@@ -10,15 +11,12 @@ from sklearn.metrics import classification_report, confusion_matrix
 from sklearn import datasets
 
 from time import time
-from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, build_multicity_dataset
+from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, get_cluster_data
 from infodenguepredict.models.deeplearning.preprocessing import split_data, normalize_data
 
 HIDDEN = 64
 TIME_WINDOW = 12
 BATCH_SIZE = 1
-
-
-
 
 
 def build_model(hidden, features, look_back=10, batch_size=1):
@@ -100,8 +98,6 @@ def get_complete_table(geocode=None):
 
 
 
-
-
 def plot_predicted_vs_data(model, Xdata, Ydata, label, pred_window):
     P.clf()
     predicted = model.predict(Xdata, batch_size=BATCH_SIZE, verbose=1)
@@ -123,12 +119,21 @@ def loss_and_metrics(model, Xtest, Ytest):
 
 if __name__ == "__main__":
     prediction_window = 2  # weeks
+    city = 3304557
+    state = 'RJ'
+
+    with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
+        clusters = pickle.load(fp)
+
     # data = get_example_table(3304557) #Nova Iguaçu: 3303500
     # data = get_complete_table(3304557)
-    data = build_multicity_dataset('RJ')
+    # data = build_multicity_dataset('RJ')
+    data = get_cluster_data(city, clusters)
     print(data.shape)
-    target_col = list(data.columns).index('casos_est_3303500')
-    time_index = data.index
+
+    target_col = list(data.columns).index('casos_{}'.format(city))
+    # print(target_col)
+    # time_index = data.index
     norm_data = normalize_data(data)
     print(norm_data.columns, norm_data.shape)
     # norm_data.casos_est.plot()
