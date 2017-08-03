@@ -17,9 +17,9 @@ def build_model(data, endog, exog, **kwargs):
                                       exog=None if exog == [] else data[exog], #data[['casos_est', 'casos_est_max', 'p_inc100k', 'nivel']],
                                       order=(2, 1, 1),
                                       seasonal_order=(2, 1, 1, 8),
-                                      time_varying_regression=True,
+                                      time_varying_regression=False,
                                       mle_regression=False,
-                                      enforce_stationarity=False,
+                                      enforce_stationarity=True,
                                       **kwargs)
 
 

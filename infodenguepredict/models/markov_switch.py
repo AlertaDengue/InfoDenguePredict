@@ -13,11 +13,10 @@ from infodenguepredict.data.infodengue import get_alerta_table
 
 
 def build_model(data):
-    model = sm.tsa.regime_switching.markov_autoregression.MarkovAutoregression(endog=data.casos.diff(), k_regimes=2,
-                                                                               exog=data[['p_rt1', 'p_inc100k']],
-                                                                                order=2)
-
-
+    model = sm.tsa.regime_switching.markov_autoregression.\
+        MarkovAutoregression(endog=data.casos, k_regimes=2,
+                             exog=data[['p_rt1', 'p_inc100k']],
+                             order=2)
     return model
 
 
@@ -36,9 +35,9 @@ if __name__ == "__main__":
     print(fit.summary())
     #todo: fix model, not fitting
     plt.figure()
-    predict = fit.get_prediction(start='2017-01-01', end='2017-03-01', dynamic=False)
+    predict = fit.predict(start='2017-01-01', end='2017-03-01')
     predict_ci = predict.conf_int()
-    predictdy = fit.get_prediction(start='2017-01-01', end='2017-02-26', dynamic=True)
+    predictdy = fit.predict(start='2017-01-01', end='2017-02-26')
     predictdy_ci = predictdy.conf_int()
     data.casos.plot(style='o',label='obs')
     predict.predicted_mean.plot(style='r--', label='one step ahead')
