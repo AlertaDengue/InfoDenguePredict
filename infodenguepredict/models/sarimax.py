@@ -68,7 +68,7 @@ if __name__ == "__main__":
     plt.savefig('sarimax_prediction.jpg')
 
     ## Forecast
-    forecast = fit.get_prediction(start='2017-03-05', end='2017-06-21', dynamic=False)
+    forecast = fit.get_prediction(start='2017-05-21', end='2017-09-21', dynamic=False)
     forecast_ci = forecast.conf_int()
     forecast.predicted_mean.plot(style='b--', label='one step ahead')
     plt.fill_between(forecast_ci.index, forecast_ci.ix[:, 0], forecast_ci.ix[:, 1], color='b', alpha=0.1)

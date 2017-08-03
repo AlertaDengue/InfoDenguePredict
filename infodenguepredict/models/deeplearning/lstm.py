@@ -13,7 +13,7 @@ from time import time
 from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, build_multicity_dataset
 from infodenguepredict.models.deeplearning.preprocessing import split_data, normalize_data
 
-HIDDEN = 256
+HIDDEN = 64
 TIME_WINDOW = 12
 BATCH_SIZE = 1
 
@@ -32,16 +32,18 @@ def build_model(hidden, features, look_back=10, batch_size=1):
     """
     model = Sequential()
 
-    # model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
-    #                batch_input_shape=(batch_size, look_back, features), return_sequences=True))
-    # model.add(Dropout(0.2))
+    model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
+                    batch_input_shape=(batch_size, look_back, features), return_sequences=True))
+    model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
+                   batch_input_shape=(batch_size, look_back, features), return_sequences=True))
+    model.add(Dropout(0.2))
 
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                    batch_input_shape=(batch_size, look_back, features)))
     model.add(Dropout(0.2))
 
     model.add(Dense(prediction_window))  # five time-step ahead prediction
-    model.add(Activation("softplus"))
+    model.add(Activation("relu"))
 
     start = time()
     model.compile(loss="mse", optimizer="rmsprop")
@@ -137,12 +139,13 @@ if __name__ == "__main__":
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
     model = build_model(HIDDEN, X_train.shape[2], TIME_WINDOW, BATCH_SIZE)
-    history = train(model, X_train, Y_train, batch_size=1, epochs=100)
+    history = train(model, X_train, Y_train, batch_size=1, epochs=10)
     model.save('lstm_model')
     ## plotting results
     print(model.summary())
     loss_and_metrics(model, X_test, Y_test)
     plot_training_history(history)
     plot_predicted_vs_data(model, X_train, Y_train, label='In Sample', pred_window=prediction_window)
+
     plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample', pred_window=prediction_window)
     P.show()
