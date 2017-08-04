@@ -6,18 +6,47 @@ from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
 from keras.models import Sequential
 from keras.utils.vis_utils import plot_model
-from sklearn.cross_validation import train_test_split
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn import datasets
+from keras.callbacks import TensorBoard
+from hyperas.distributions import uniform, choice
+from hyperas import optim
+from hyperopt import Trials, STATUS_OK, tpe
 
 from time import time
 from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, get_cluster_data
 from infodenguepredict.models.deeplearning.preprocessing import split_data, normalize_data
 
-HIDDEN = 64
-TIME_WINDOW = 12
+HIDDEN = 4
+TIME_WINDOW = 2
 BATCH_SIZE = 1
 
+
+def optimize_model(x_train, y_train, x_test, y_test, features, TIME_WINDOW):
+
+    model = Sequential()
+
+    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=(TIME_WINDOW, features), stateful=True,
+                   batch_input_shape=(1, TIME_WINDOW, features), return_sequences=True))
+    model.add(Dropout({{uniform(0, 1)}}))
+    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=(TIME_WINDOW, features), stateful=True,
+                   batch_input_shape=(1, TIME_WINDOW, features), return_sequences=True))
+    model.add(Dropout({{uniform(0, 1)}}))
+
+    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=(TIME_WINDOW, features), stateful=True,
+                   batch_input_shape=(1, TIME_WINDOW, features)))
+    model.add(Dropout({{uniform(0, 1)}}))
+
+    model.add(Dense(prediction_window, activation='relu'))
+
+    start = time()
+    model.compile(loss="mse", optimizer="rmsprop")
+    model.fit(x_train, y_train,
+              batch_size=1,
+              nb_epoch=1,
+              validation_split=0.05,
+              verbose=0,
+              )
+    loss = model.evaluate(x_test, y_test, batch_size=1)
+    return {'loss': loss, 'status': STATUS_OK, 'model': model}
 
 def build_model(hidden, features, look_back=10, batch_size=1):
     """
@@ -32,6 +61,7 @@ def build_model(hidden, features, look_back=10, batch_size=1):
 
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                     batch_input_shape=(batch_size, look_back, features), return_sequences=True))
+    model.add(Dropout(0.2))
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                    batch_input_shape=(batch_size, look_back, features), return_sequences=True))
     model.add(Dropout(0.2))
@@ -40,8 +70,7 @@ def build_model(hidden, features, look_back=10, batch_size=1):
                    batch_input_shape=(batch_size, look_back, features)))
     model.add(Dropout(0.2))
 
-    model.add(Dense(prediction_window))  # five time-step ahead prediction
-    model.add(Activation("relu"))
+    model.add(Dense(prediction_window, activation='relu'))
 
     start = time()
     model.compile(loss="mse", optimizer="rmsprop")
@@ -51,8 +80,19 @@ def build_model(hidden, features, look_back=10, batch_size=1):
 
 
 def train(model, X_train, Y_train, batch_size=1, epochs=100, overwrite=True):
+    TB_callback = TensorBoard(log_dir='./tensorboard',
+                              histogram_freq=0,
+                              write_graph=True,
+                              write_images=True,
+                              # embeddings_freq=10
+                              )
+
     hist = model.fit(X_train, Y_train,
-                     batch_size=batch_size, nb_epoch=epochs, validation_split=0.05, verbose=1)
+                     batch_size=batch_size,
+                     nb_epoch=epochs,
+                     validation_split=0.05,
+                     verbose=1,
+                     callbacks=[TB_callback])
     model.save_weights('trained_lstm_model.h5', overwrite=overwrite)
     return hist
 
@@ -118,7 +158,7 @@ def loss_and_metrics(model, Xtest, Ytest):
 
 
 if __name__ == "__main__":
-    prediction_window = 2  # weeks
+    prediction_window = 5  # weeks
     city = 3304557
     state = 'RJ'
 
@@ -129,22 +169,32 @@ if __name__ == "__main__":
     # data = get_complete_table(3304557)
     # data = build_multicity_dataset('RJ')
     data = get_cluster_data(city, clusters)
-    print(data.shape)
+    # print(data.shape)
 
     target_col = list(data.columns).index('casos_{}'.format(city))
     # print(target_col)
-    # time_index = data.index
+    time_index = data.index
     norm_data = normalize_data(data)
-    print(norm_data.columns, norm_data.shape)
-    # norm_data.casos_est.plot()
+    # print(norm_data.columns, norm_data.shape)
+    # norm_data.casos_3304557.plot()
     # P.show()
     X_train, Y_train, X_test, Y_test = split_data(norm_data,
                                                   look_back=TIME_WINDOW, ratio=.7,
                                                   predict_n=prediction_window, Y_column=target_col)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
-
+    ## Optimize Hyperparameters
+    #
+    # def get_data():
+    #     return X_train, Y_train, X_test, Y_test, X_train.shape[2], TIME_WINDOW
+    #
+    # best_run, best_model = optim.minimize(model=optimize_model,
+    #                                       data=get_data,
+    #                                       algo=tpe.suggest,
+    #                                       max_evals=5,
+    #                                       trials=Trials())
+    ## Run model
     model = build_model(HIDDEN, X_train.shape[2], TIME_WINDOW, BATCH_SIZE)
-    history = train(model, X_train, Y_train, batch_size=1, epochs=10)
+    history = train(model, X_train, Y_train, batch_size=1, epochs=15)
     model.save('lstm_model')
     ## plotting results
     print(model.summary())

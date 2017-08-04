@@ -13,7 +13,7 @@ def split_data(df, look_back=12, ratio=0.8, predict_n=5, Y_column=0):
     :param Y_column: Column to predict
     :return:
     """
-    df = np.nan_to_num(df.values).astype("float32")
+    df = np.nan_to_num(df.values).astype("float64")
     # n_ts is the number of training samples also number of training sets
     # since windows have an overlap of n-1
     n_ts = df.shape[0] - look_back - predict_n
