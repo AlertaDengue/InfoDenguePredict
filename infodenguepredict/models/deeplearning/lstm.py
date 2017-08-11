@@ -13,7 +13,7 @@ from hyperas import optim
 from hyperopt import Trials, STATUS_OK, tpe
 
 from time import time
-from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, get_cluster_data
+from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, get_cluster_data, random_data
 from infodenguepredict.models.deeplearning.preprocessing import split_data, normalize_data
 
 HIDDEN = 4
@@ -166,16 +166,22 @@ def loss_and_metrics(model, Xtest, Ytest):
     print(model.evaluate(Xtest, Ytest, batch_size=1))
 
 
-def single_prediction(city, state, predict_n, time_window, hidden):
-    with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
-        clusters = pickle.load(fp)
-    # data = get_example_table(3304557) #Nova Iguaçu: 3303500
-    # data = get_complete_table(3304557)
-    # data = build_multicity_dataset('RJ')
-    data = get_cluster_data(city, clusters)
+def single_prediction(city, state, predict_n, time_window, hidden, random=False):
+    codes = pd.read_excel('../../data/codigos_rj.xlsx', names=['city', 'code'], header=None).set_index('code').T
+
+    if random==True:
+        data, group = random_data(10, state, city)
+    else:
+        with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
+            clusters = pickle.load(fp)
+        # data = get_example_table(3304557) #Nova Iguaçu: 3303500
+        # data = get_complete_table(3304557)
+        # data = build_multicity_dataset('RJ')
+        data, group = get_cluster_data(city, clusters)
+
+    cluster = [codes[i] for i in group]
     target_col = list(data.columns).index('casos_{}'.format(city))
     norm_data, max_features = normalize_data(data)
-    # norm_data.casos_3304557.plot()
     # P.show()
     X_train, Y_train, X_test, Y_test = split_data(norm_data,
                                                   look_back=time_window, ratio=.7,
@@ -195,16 +201,17 @@ def single_prediction(city, state, predict_n, time_window, hidden):
     plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample', pred_window=predict_n,
                            factor=max_features[target_col])
     P.show()
-    return model.summary()
+    print(cluster)
+    return None
 
 
 def cluster_prediction(state, predict_n, time_window, hidden):
-    codes = pd.read_excel('../../data/codigos_rj.xlsx', names=['city', 'code']).set_index('code').T
+    codes = pd.read_excel('../../data/codigos_rj.xlsx', names=['city', 'code'], header=None).set_index('code').T
 
     with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
 
-    for i, cluster in enumerate(clusters):
+    for i, cluster in enumerate(clusters[3:]):
         data = get_cluster_data(cluster[0], clusters)
 
         if len(cluster) < 9:
@@ -243,8 +250,9 @@ if __name__ == "__main__":
     city = 3304557
     state = 'RJ'
 
-    # single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN)
-    cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN)
+    single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW,
+                      hidden=HIDDEN, random=True)
+    # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN)
 
     ## Optimize Hyperparameters
     #
