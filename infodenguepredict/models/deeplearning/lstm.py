@@ -60,20 +60,28 @@ def build_model(hidden, features, look_back=10, batch_size=1):
     model = Sequential()
 
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
-                    batch_input_shape=(batch_size, look_back, features), return_sequences=True))
-    model.add(Dropout(0.2))
+                   batch_input_shape=(batch_size, look_back, features),
+                   return_sequences=True,
+                   dropout=0.1,
+                   recurrent_dropout=0.1
+                   ))
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
-                   batch_input_shape=(batch_size, look_back, features), return_sequences=True))
-    model.add(Dropout(0.2))
+                   batch_input_shape=(batch_size, look_back, features),
+                   return_sequences=True,
+                   dropout=0.1,
+                   recurrent_dropout=0.1
+                   ))
 
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
-                   batch_input_shape=(batch_size, look_back, features)))
-    model.add(Dropout(0.2))
+                   batch_input_shape=(batch_size, look_back, features),
+                   dropout=0.1,
+                   recurrent_dropout=0.1
+                   ))
 
     model.add(Dense(prediction_window, activation='relu'))
 
     start = time()
-    model.compile(loss="mse", optimizer="rmsprop")
+    model.compile(loss="poisson", optimizer="rmsprop")
     print("Compilation Time : ", time() - start)
     plot_model(model, to_file='LSTM_model.png')
     return model
@@ -158,7 +166,7 @@ def loss_and_metrics(model, Xtest, Ytest):
 
 
 if __name__ == "__main__":
-    prediction_window = 5  # weeks
+    prediction_window = 3  # weeks
     city = 3304557
     state = 'RJ'
 
@@ -194,7 +202,7 @@ if __name__ == "__main__":
     #                                       trials=Trials())
     ## Run model
     model = build_model(HIDDEN, X_train.shape[2], TIME_WINDOW, BATCH_SIZE)
-    history = train(model, X_train, Y_train, batch_size=1, epochs=15)
+    history = train(model, X_train, Y_train, batch_size=1, epochs=50)
     model.save('lstm_model')
     ## plotting results
     print(model.summary())
