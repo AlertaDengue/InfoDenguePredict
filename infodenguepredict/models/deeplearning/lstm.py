@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pickle
+import math
 from matplotlib import pyplot as P
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
@@ -89,7 +90,7 @@ def build_model(hidden, features, look_back=10, batch_size=1):
     start = time()
     model.compile(loss="poisson", optimizer="nadam")
     print("Compilation Time : ", time() - start)
-    plot_model(model, to_file='LSTM_model.png')
+    # plot_model(model, to_file='LSTM_model.png')
     return model
 
 
@@ -152,17 +153,17 @@ def get_complete_table(geocode=None):
 
 
 
-def plot_predicted_vs_data(model, Xdata, Ydata, label, pred_window):
+def plot_predicted_vs_data(model, Xdata, Ydata, label, pred_window, factor):
     P.clf()
     predicted = model.predict(Xdata, batch_size=BATCH_SIZE, verbose=1)
     df_predicted = pd.DataFrame(predicted).T
     for n in range(df_predicted.shape[1]):
-        P.plot(range(n, n + pred_window), pd.DataFrame(Ydata.T)[n], 'k-')
-        P.plot(range(n, n + pred_window), df_predicted[n], 'g:o', alpha=0.5)
+        P.plot(range(n, n + pred_window), pd.DataFrame(Ydata.T)[n]*factor, 'k-')
+        P.plot(range(n, n + pred_window), df_predicted[n]*factor, 'g:o', alpha=0.5)
     P.grid()
     P. title(label)
     P.xlabel('weeks')
-    P.ylabel('normalized incidence')
+    P.ylabel('incidence')
     P.legend([label, 'predicted'])
     P.savefig("lstm_{}.png".format(label))
 
@@ -171,34 +172,90 @@ def loss_and_metrics(model, Xtest, Ytest):
     print(model.evaluate(Xtest, Ytest, batch_size=1))
 
 
-if __name__ == "__main__":
+def single_prediction(city, state, predict_n, time_window, hidden):
     HIDDEN = 4
     LOOK_BACK = 4
     BATCH_SIZE = 1
-    prediction_window = 3  # weeks
     city = 3303500#3304557
-    state = 'RJ'
-
     with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
-
     # data = get_example_table(3304557) #Nova Iguaçu: 3303500
     # data = get_complete_table(3304557)
     # data = build_multicity_dataset('RJ')
     data = get_cluster_data(city, clusters)
-    print(data.shape)
-
     target_col = list(data.columns).index('casos_{}'.format(city))
-    # print(target_col)
-    time_index = data.index
-    norm_data = normalize_data(data)
-    # print(norm_data.columns, norm_data.shape)
+    norm_data, max_features = normalize_data(data)
     # norm_data.casos_3304557.plot()
     # P.show()
     X_train, Y_train, X_test, Y_test = split_data(norm_data,
-                                                  look_back=LOOK_BACK, ratio=.7,
-                                                  predict_n=prediction_window, Y_column=target_col)
+                                                  look_back=time_window, ratio=.7,
+                                                  predict_n=predict_n, Y_column=target_col)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
+
+    ## Run model
+    model = build_model(hidden, X_train.shape[2], time_window, 1)
+    history = train(model, X_train, Y_train, batch_size=1, epochs=50)
+    # model.save('lstm_model')
+
+    ## plotting results
+    loss_and_metrics(model, X_test, Y_test)
+    plot_training_history(history)
+    plot_predicted_vs_data(model, X_train, Y_train, label='In Sample', pred_window=predict_n,
+                           factor=max_features[target_col])
+    plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample', pred_window=predict_n,
+                           factor=max_features[target_col])
+    P.show()
+    return model.summary()
+
+
+def cluster_prediction(state, predict_n, time_window, hidden):
+    codes = pd.read_excel('../../data/codigos_rj.xlsx', names=['city', 'code']).set_index('code').T
+
+    with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
+        clusters = pickle.load(fp)
+
+    for i, cluster in enumerate(clusters):
+        data = get_cluster_data(cluster[0], clusters)
+
+        if len(cluster) < 9:
+            fig, axs = P.subplots(nrows=math.ceil(len(cluster) / 3), ncols=3, figsize=(45, 45))
+        else:
+            fig, axs = P.subplots(nrows=math.ceil(len(cluster) / 4), ncols=4, figsize=(45, 45))
+
+        targets = zip(cluster, axs.flatten())
+        for (city, ax) in targets:
+            target_col = list(data.columns).index('casos_{}'.format(city))
+            norm_data, max_features = normalize_data(data)
+            #model
+            X_train, Y_train, X_test, Y_test = split_data(norm_data,
+                                                          look_back=time_window, ratio=.7,
+                                                          predict_n=predict_n, Y_column=target_col)
+            model = build_model(hidden, X_train.shape[2], time_window, 1)
+            history = train(model, X_train, Y_train, batch_size=1, epochs=10)
+
+            #plot
+            predicted = model.predict(X_test, batch_size=1, verbose=1)
+            df_predicted = pd.DataFrame(predicted).T
+            factor = max_features[target_col]
+            for n in range(df_predicted.shape[1]):
+                ax.plot(range(n, n + predict_n), pd.DataFrame(Y_test.T)[n]*factor, 'k-')
+                ax.plot(range(n, n + predict_n), df_predicted[n]*factor, 'g:o', alpha=0.5)
+            ax.grid()
+            ax.set_title(codes[city])
+
+        P.savefig('cluster_{}'.format(i), dip=400)
+    return None
+
+
+
+if __name__ == "__main__":
+    prediction_window = 3  # weeks
+    city = 3304557
+    state = 'RJ'
+
+    # single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN)
+    cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN)
+
     ## Optimize Hyperparameters
     #
     def get_data():
@@ -209,15 +266,7 @@ if __name__ == "__main__":
     #                                       algo=tpe.suggest,
     #                                       max_evals=5,
     #                                       trials=Trials())
-    ## Run model
-    model = build_model(HIDDEN, X_train.shape[2], LOOK_BACK, BATCH_SIZE)
-    history = train(model, X_train, Y_train, batch_size=1, epochs=50)
-    # model.save('lstm_model')
-    ## plotting results
-    print(model.summary())
-    loss_and_metrics(model, X_test, Y_test)
-    plot_training_history(history)
-    plot_predicted_vs_data(model, X_train, Y_train, label='In Sample', pred_window=prediction_window)
 
-    plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample', pred_window=prediction_window)
-    P.show()
+
+
+

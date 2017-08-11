@@ -54,4 +54,4 @@ def normalize_data(df):
     norm = normalize(df, norm='max', axis=0)
     df_norm = pd.DataFrame(norm, columns=df.columns)
 
-    return df_norm
+    return df_norm, df.max(axis=0)
