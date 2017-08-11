@@ -51,7 +51,7 @@ def normalize_data(df):
             le.fit(df[col])
             df[col] = le.transform(df[col])
 
-    norm = normalize(df, norm='l2', axis=0)
+    norm = normalize(df, norm='max', axis=0)
     df_norm = pd.DataFrame(norm, columns=df.columns)
 
     return df_norm
