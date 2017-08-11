@@ -16,25 +16,31 @@ from time import time
 from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, get_cluster_data, random_data
 from infodenguepredict.models.deeplearning.preprocessing import split_data, normalize_data
 
-HIDDEN = 4
-TIME_WINDOW = 2
-BATCH_SIZE = 1
 
 
-def optimize_model(x_train, y_train, x_test, y_test, features, TIME_WINDOW):
+def optimize_model(x_train, y_train, x_test, y_test, features):
 
     model = Sequential()
+    print(space)
 
-    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=(TIME_WINDOW, features), stateful=True,
-                   batch_input_shape=(1, TIME_WINDOW, features), return_sequences=True))
-    model.add(Dropout({{uniform(0, 1)}}))
-    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=(TIME_WINDOW, features), stateful=True,
-                   batch_input_shape=(1, TIME_WINDOW, features), return_sequences=True))
-    model.add(Dropout({{uniform(0, 1)}}))
+    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=({{choice([2, 3, 4])}}, features), stateful=True,
+                   batch_input_shape=(1, {{choice([2, 3, 4])}}, features),
+                   return_sequences=True,
+                   dropout={{uniform(0, 1)}},
+                   recurrent_dropout={{uniform(0, 1)}}
+                   ))
+    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=({{choice([2, 3, 4])}}, features), stateful=True,
+                   batch_input_shape=(1, {{choice([2, 3, 4])}}, features),
+                   return_sequences=True,
+                   dropout={{uniform(0, 1)}},
+                   recurrent_dropout={{uniform(0, 1)}}
+                   ))
 
-    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=(TIME_WINDOW, features), stateful=True,
-                   batch_input_shape=(1, TIME_WINDOW, features)))
-    model.add(Dropout({{uniform(0, 1)}}))
+    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=({{choice([2, 3, 4])}}, features), stateful=True,
+                   batch_input_shape=(1, {{choice([2, 3, 4])}}, features),
+                   dropout={{uniform(0, 1)}},
+                   recurrent_dropout={{uniform(0, 1)}}
+                   ))
 
     model.add(Dense(prediction_window, activation='relu'))
 
@@ -63,32 +69,32 @@ def build_model(hidden, features, look_back=10, batch_size=1):
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                    batch_input_shape=(batch_size, look_back, features),
                    return_sequences=True,
-                   dropout=0.1,
-                   recurrent_dropout=0.1
+                   dropout=0.2,
+                   recurrent_dropout=0.2,
                    ))
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                    batch_input_shape=(batch_size, look_back, features),
                    return_sequences=True,
-                   dropout=0.1,
-                   recurrent_dropout=0.1
+                   dropout=0.2,
+                   recurrent_dropout=0.2,
                    ))
 
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                    batch_input_shape=(batch_size, look_back, features),
-                   dropout=0.1,
-                   recurrent_dropout=0.1
+                   dropout=0.2,
+                   recurrent_dropout=0.2
                    ))
 
     model.add(Dense(prediction_window, activation='relu'))
 
     start = time()
-    model.compile(loss="poisson", optimizer="rmsprop")
+    model.compile(loss="poisson", optimizer="nadam")
     print("Compilation Time : ", time() - start)
     # plot_model(model, to_file='LSTM_model.png')
     return model
 
 
-def train(model, X_train, Y_train, batch_size=1, epochs=100, overwrite=True):
+def train(model, X_train, Y_train, batch_size=1, epochs=10, overwrite=True):
     TB_callback = TensorBoard(log_dir='./tensorboard',
                               histogram_freq=0,
                               write_graph=True,
@@ -99,10 +105,10 @@ def train(model, X_train, Y_train, batch_size=1, epochs=100, overwrite=True):
     hist = model.fit(X_train, Y_train,
                      batch_size=batch_size,
                      nb_epoch=epochs,
-                     validation_split=0.05,
+                     validation_split=0.15,
                      verbose=1,
                      callbacks=[TB_callback])
-    model.save_weights('trained_lstm_model.h5', overwrite=overwrite)
+    # model.save_weights('trained_lstm_model.h5', overwrite=overwrite)
     return hist
 
 
@@ -257,8 +263,8 @@ if __name__ == "__main__":
     ## Optimize Hyperparameters
     #
     # def get_data():
-    #     return X_train, Y_train, X_test, Y_test, X_train.shape[2], TIME_WINDOW
-    #
+    #     return X_train, Y_train, X_test, Y_test, X_train.shape[2]
+
     # best_run, best_model = optim.minimize(model=optimize_model,
     #                                       data=get_data,
     #                                       algo=tpe.suggest,
