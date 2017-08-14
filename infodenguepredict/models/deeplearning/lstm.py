@@ -21,7 +21,6 @@ from infodenguepredict.models.deeplearning.preprocessing import split_data, norm
 def optimize_model(x_train, y_train, x_test, y_test, features):
 
     model = Sequential()
-    print(space)
 
     model.add(LSTM({{choice([4, 8, 16])}}, input_shape=({{choice([2, 3, 4])}}, features), stateful=True,
                    batch_input_shape=(1, {{choice([2, 3, 4])}}, features),
@@ -94,7 +93,7 @@ def build_model(hidden, features, look_back=10, batch_size=1):
     return model
 
 
-def train(model, X_train, Y_train, batch_size=1, epochs=10, overwrite=True):
+def train(model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwrite=True):
     TB_callback = TensorBoard(log_dir='./tensorboard',
                               histogram_freq=0,
                               write_graph=True,
@@ -108,7 +107,7 @@ def train(model, X_train, Y_train, batch_size=1, epochs=10, overwrite=True):
                      validation_split=0.15,
                      verbose=1,
                      callbacks=[TB_callback])
-    # model.save_weights('trained_lstm_model.h5', overwrite=overwrite)
+    model.save_weights('trained_{}_model.h5'.format(geocode), overwrite=overwrite)
     return hist
 
 
@@ -206,7 +205,6 @@ def single_prediction(city, state, predict_n, time_window, hidden, random=False)
                            factor=max_features[target_col])
     plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample', pred_window=predict_n,
                            factor=max_features[target_col])
-    P.show()
     print(cluster)
     return None
 
@@ -218,8 +216,8 @@ def cluster_prediction(state, predict_n, time_window, hidden, epochs):
         clusters = pickle.load(fp)
 
     for i, cluster in enumerate(clusters[3:]):
-        if i < 3: continue
-        data = get_cluster_data(cluster[0], clusters)
+        # if i < 3: continue
+        data, cluster_n = get_cluster_data(cluster[0], clusters)
 
         if len(cluster) < 9:
             fig, axs = P.subplots(nrows=math.ceil(len(cluster) / 3), ncols=3, figsize=(45, 45))
@@ -235,7 +233,7 @@ def cluster_prediction(state, predict_n, time_window, hidden, epochs):
                                                           look_back=time_window, ratio=.7,
                                                           predict_n=predict_n, Y_column=target_col)
             model = build_model(hidden, X_train.shape[2], time_window, 1)
-            history = train(model, X_train, Y_train, batch_size=1, epochs=epochs)
+            history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
 
             #plot
             predicted = model.predict(X_test, batch_size=1, verbose=1)
@@ -263,9 +261,8 @@ if __name__ == "__main__":
     state = 'RJ'
     epochs = 50
 
-    single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW,
-                      hidden=HIDDEN, random=True)
-    # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN)
+    single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, random=True)
+    # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
 
     ## Optimize Hyperparameters
     #
