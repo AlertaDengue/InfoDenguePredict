@@ -5,6 +5,7 @@ for remote database access, we recommend establishing an SSH tunnel:
 """
 
 import pandas as pd
+import random
 from sqlalchemy import create_engine
 from decouple import config
 
@@ -148,4 +149,28 @@ def get_cluster_data(geocode, clusters):
         tmp.columns = ['{}_{}'.format(col, city_code) for col in tmp.columns.values]
         full_data = pd.concat([tmp, full_data], axis=1).fillna(method='ffill')
 
-    return full_data
+    return full_data, cluster
+
+
+def random_data(N, state, city=None):
+    to_drop = ['casos_est_min', 'casos_est_max', 'Localidade_id', 'versao_modelo',
+               'municipio_nome', 'casos_est', 'municipio_geocodigo', 'nivel']
+
+    alerta_table = get_alerta_table(state=state)
+    cities_list = alerta_table.municipio_geocodigo.unique()
+
+    random_group = random.sample(list(cities_list), N)
+
+    if city != None:
+        if city not in random_group:
+            random_group.append(city)
+
+    full_data = pd.DataFrame()
+    for city_code in random_group:
+        tmp = combined_data(city_code).drop(to_drop, axis=1)
+        tmp.columns = ['{}_{}'.format(col, city_code) for col in tmp.columns.values]
+        full_data = pd.concat([tmp, full_data], axis=1).fillna(method='ffill')
+
+    return full_data, random_group
+
+
