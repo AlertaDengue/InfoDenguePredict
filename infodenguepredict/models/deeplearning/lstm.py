@@ -172,10 +172,7 @@ def loss_and_metrics(model, Xtest, Ytest):
     print(model.evaluate(Xtest, Ytest, batch_size=1))
 
 
-def single_prediction(city, state, predict_n, time_window, hidden):
-    HIDDEN = 4
-    LOOK_BACK = 4
-    BATCH_SIZE = 1
+def single_prediction(city, state, predict_n, time_window,hidden, epochs):
     city = 3303500#3304557
     with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
@@ -194,7 +191,7 @@ def single_prediction(city, state, predict_n, time_window, hidden):
 
     ## Run model
     model = build_model(hidden, X_train.shape[2], time_window, 1)
-    history = train(model, X_train, Y_train, batch_size=1, epochs=50)
+    history = train(model, X_train, Y_train, batch_size=1, epochs=epochs)
     # model.save('lstm_model')
 
     ## plotting results
@@ -208,13 +205,14 @@ def single_prediction(city, state, predict_n, time_window, hidden):
     return model.summary()
 
 
-def cluster_prediction(state, predict_n, time_window, hidden):
+def cluster_prediction(state, predict_n, time_window, hidden, epochs):
     codes = pd.read_excel('../../data/codigos_rj.xlsx', names=['city', 'code']).set_index('code').T
 
     with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
 
     for i, cluster in enumerate(clusters):
+        if i < 3: continue
         data = get_cluster_data(cluster[0], clusters)
 
         if len(cluster) < 9:
@@ -231,7 +229,7 @@ def cluster_prediction(state, predict_n, time_window, hidden):
                                                           look_back=time_window, ratio=.7,
                                                           predict_n=predict_n, Y_column=target_col)
             model = build_model(hidden, X_train.shape[2], time_window, 1)
-            history = train(model, X_train, Y_train, batch_size=1, epochs=10)
+            history = train(model, X_train, Y_train, batch_size=1, epochs=epochs)
 
             #plot
             predicted = model.predict(X_test, batch_size=1, verbose=1)
@@ -242,24 +240,30 @@ def cluster_prediction(state, predict_n, time_window, hidden):
                 ax.plot(range(n, n + predict_n), df_predicted[n]*factor, 'g:o', alpha=0.5)
             ax.grid()
             ax.set_title(codes[city])
+        P.savefig('cluster_{}.png'.format(i), dpi=400)
+        # P.show()
 
-        P.savefig('cluster_{}'.format(i), dip=400)
     return None
 
 
 
 if __name__ == "__main__":
+    TIME_WINDOW = 4
+    HIDDEN = 4
+    LOOK_BACK = 4
+    BATCH_SIZE = 1
     prediction_window = 3  # weeks
-    city = 3304557
+    city = 3303500
     state = 'RJ'
+    epochs = 50
 
-    # single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN)
-    cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN)
+    # single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
+    cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
 
     ## Optimize Hyperparameters
     #
-    def get_data():
-        return X_train, Y_train, X_test, Y_test, X_train.shape[2]
+    # def get_data():
+    #     return X_train, Y_train, X_test, Y_test, X_train.shape[2]
 
     # best_run, best_model = optim.minimize(model=optimize_model,
     #                                       data=get_data,
