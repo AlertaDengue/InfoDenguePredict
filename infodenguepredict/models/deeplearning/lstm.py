@@ -108,7 +108,7 @@ def train(model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwr
                      verbose=1,
                      callbacks=[TB_callback])
     with open('history_{}.pkl'.format(geocode),'wb') as f:
-        pickle.dump(hist, f)
+        pickle.dump(hist.history, f)
     model.save_weights('trained_{}_model.h5'.format(geocode), overwrite=overwrite)
     return hist
 
@@ -197,7 +197,7 @@ def single_prediction(city, state, predict_n, time_window, hidden, random=False)
 
     ## Run model
     model = build_model(hidden, X_train.shape[2], time_window, 1)
-    history = train(model, X_train, Y_train, batch_size=1, epochs=epochs)
+    history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
     # model.save('lstm_model')
 
     ## plotting results
