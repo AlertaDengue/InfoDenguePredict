@@ -44,7 +44,7 @@ def optimize_model(x_train, y_train, x_test, y_test, features):
     model.add(Dense(prediction_window, activation='relu'))
 
     start = time()
-    model.compile(loss="mse", optimizer="rmsprop")
+    model.compile(loss="mse", optimizer="rmsprop", )
     model.fit(x_train, y_train,
               batch_size=1,
               nb_epoch=1,
@@ -87,7 +87,7 @@ def build_model(hidden, features, look_back=10, batch_size=1):
     model.add(Dense(prediction_window, activation='relu'))
 
     start = time()
-    model.compile(loss="poisson", optimizer="nadam")
+    model.compile(loss="poisson", optimizer="nadam", metrics=['accuracy', 'mape'])
     print("Compilation Time : ", time() - start)
     # plot_model(model, to_file='LSTM_model.png')
     return model
@@ -107,6 +107,8 @@ def train(model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwr
                      validation_split=0.15,
                      verbose=1,
                      callbacks=[TB_callback])
+    with open('history_{}.pkl'.format(geocode),'wb') as f:
+        pickle.dump(hist, f)
     model.save_weights('trained_{}_model.h5'.format(geocode), overwrite=overwrite)
     return hist
 
@@ -253,13 +255,13 @@ def cluster_prediction(state, predict_n, time_window, hidden, epochs):
 
 if __name__ == "__main__":
     TIME_WINDOW = 4
-    HIDDEN = 4
+    HIDDEN = 64
     LOOK_BACK = 4
     BATCH_SIZE = 1
     prediction_window = 3  # weeks
     city = 3303500
     state = 'RJ'
-    epochs = 50
+    epochs = 1
 
     single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, random=True)
     # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
