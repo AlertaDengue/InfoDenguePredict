@@ -152,6 +152,34 @@ def get_cluster_data(geocode, clusters):
     return full_data, cluster
 
 
+def get_example_table(geocode=None):
+    """
+    Fetch the data from the database, filters out useless variables
+    :return: pandas dataframe
+    """
+    raw_df = get_alerta_table(geocode)
+    filtered_df  = raw_df[['SE', 'casos_est', 'casos_est_min', 'casos_est_max',
+       'casos', 'municipio_geocodigo', 'p_rt1', 'p_inc100k', 'nivel']]
+    filtered_df['SE'] = [int(str(x)[-2:]) for x in filtered_df.SE]
+
+    return filtered_df
+
+
+def get_complete_table(geocode=None):
+    """
+    Extends Example table with temperature, humidity atmospheric pressure and Tweets
+    :param geocode:
+    :return:
+    """
+    df = get_example_table(geocode=geocode)
+    T = get_temperature_data(geocode)
+    Tw = get_tweet_data(municipio=geocode)
+    Tw.pop('Municipio_geocodigo')
+    Tw.pop('CID10_codigo')
+    complete = df.join(T).join(Tw).dropna()
+    return complete
+
+
 def random_data(N, state, city=None):
     to_drop = ['casos_est_min', 'casos_est_max', 'Localidade_id', 'versao_modelo',
                'municipio_nome', 'casos_est', 'municipio_geocodigo', 'nivel']
