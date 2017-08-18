@@ -156,6 +156,9 @@ def get_complete_table(geocode=None):
 
 def plot_predicted_vs_data(model, Xdata, Ydata, label, pred_window, factor):
     P.clf()
+    metrics = model.evaluate(Xdata, Ydata, batch_size=1)
+    with open('metrics_{}.pkl'.format(label),'wb') as f:
+        pickle.dump(metrics, f)
     predicted = model.predict(Xdata, batch_size=BATCH_SIZE, verbose=1)
     df_predicted = pd.DataFrame(predicted).T
     for n in range(df_predicted.shape[1]):
@@ -203,9 +206,9 @@ def single_prediction(city, state, predict_n, time_window, hidden, random=False)
     ## plotting results
     loss_and_metrics(model, X_test, Y_test)
     plot_training_history(history)
-    plot_predicted_vs_data(model, X_train, Y_train, label='In Sample', pred_window=predict_n,
+    plot_predicted_vs_data(model, X_train, Y_train, label='In Sample {}'.format(city), pred_window=predict_n,
                            factor=max_features[target_col])
-    plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample', pred_window=predict_n,
+    plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample {}'.format(city), pred_window=predict_n,
                            factor=max_features[target_col])
     print(cluster)
     return None
