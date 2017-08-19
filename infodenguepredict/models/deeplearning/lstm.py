@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import math
+import string as str
 from matplotlib import pyplot as P
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
@@ -54,7 +55,8 @@ def optimize_model(x_train, y_train, x_test, y_test, features):
     loss = model.evaluate(x_test, y_test, batch_size=1)
     return {'loss': loss, 'status': STATUS_OK, 'model': model}
 
-def build_model(hidden, features, look_back=10, batch_size=1):
+
+def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     """
     Builds and returns the LSTM model with the parameters given
     :param hidden: number of hidden nodes
@@ -84,7 +86,7 @@ def build_model(hidden, features, look_back=10, batch_size=1):
                    recurrent_dropout=0.2
                    ))
 
-    model.add(Dense(prediction_window, activation='relu'))
+    model.add(Dense(predict_n, activation='relu'))
 
     start = time()
     model.compile(loss="poisson", optimizer="nadam", metrics=['accuracy', 'mape'])
@@ -125,41 +127,8 @@ def plot_training_history(hist):
     P.savefig("LSTM_training_history.png")
 
 
-def get_example_table(geocode=None):
-    """
-    Fetch the data from the database, filters out useless variables
-    :return: pandas dataframe
-    """
-    raw_df = get_alerta_table(geocode)
-    filtered_df  = raw_df[['SE', 'casos_est', 'casos_est_min', 'casos_est_max',
-       'casos', 'municipio_geocodigo', 'p_rt1', 'p_inc100k', 'nivel']]
-    filtered_df['SE'] = [int(str(x)[-2:]) for x in filtered_df.SE]
-
-    return filtered_df
-
-
-def get_complete_table(geocode=None):
-    """
-    Extends Example table with temperature, humidity atmospheric pressure and Tweets
-    :param geocode:
-    :return:
-    """
-    df = get_example_table(geocode=geocode)
-    T = get_temperature_data(geocode)
-    Tw = get_tweet_data(municipio=geocode)
-    Tw.pop('Municipio_geocodigo')
-    Tw.pop('CID10_codigo')
-    complete = df.join(T).join(Tw).dropna()
-    return complete
-
-
-
-def plot_predicted_vs_data(model, Xdata, Ydata, label, pred_window, factor):
+def plot_predicted_vs_data(predicted, Ydata, label, pred_window, factor):
     P.clf()
-    metrics = model.evaluate(Xdata, Ydata, batch_size=1)
-    with open('metrics_{}.pkl'.format(label),'wb') as f:
-        pickle.dump(metrics, f)
-    predicted = model.predict(Xdata, batch_size=BATCH_SIZE, verbose=1)
     df_predicted = pd.DataFrame(predicted).T
     for n in range(df_predicted.shape[1]):
         P.plot(range(n, n + pred_window), pd.DataFrame(Ydata.T)[n]*factor, 'k-')
@@ -176,42 +145,57 @@ def loss_and_metrics(model, Xtest, Ytest):
     print(model.evaluate(Xtest, Ytest, batch_size=1))
 
 
-def single_prediction(city, state, predict_n, time_window, hidden, random=False):
-    codes = pd.read_excel('../../data/codigos_rj.xlsx', names=['city', 'code'], header=None).set_index('code').T
+def evaluate(city, model, Xdata, Ydata, label):
+    loss_and_metrics(model, Xdata, Ydata)
+    metrics = model.evaluate(Xdata, Ydata, batch_size=1)
+    with open('metrics_{}.pkl'.format(label), 'wb') as f:
+        pickle.dump(metrics, f)
+    predicted = model.predict(Xdata, batch_size=1, verbose=1)
+    return predicted, metrics
 
-    if random==True:
-        data, group = random_data(10, state, city)
-    else:
-        with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
-            clusters = pickle.load(fp)
-        # data = get_example_table(3304557) #Nova Iguaçu: 3303500
-        # data = get_complete_table(3304557)
-        # data = build_multicity_dataset('RJ')
-        data, group = get_cluster_data(city, clusters)
 
-    cluster = [codes[i] for i in group]
+def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epochs):
     target_col = list(data.columns).index('casos_{}'.format(city))
     norm_data, max_features = normalize_data(data)
-    # P.show()
+
+    ##split test and train
     X_train, Y_train, X_test, Y_test = split_data(norm_data,
                                                   look_back=time_window, ratio=.7,
                                                   predict_n=predict_n, Y_column=target_col)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
     ## Run model
-    model = build_model(hidden, X_train.shape[2], time_window, 1)
+    model = build_model(hidden, X_train.shape[2], predict_n=predict_n ,look_back=time_window)
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
     # model.save('lstm_model')
 
-    ## plotting results
-    loss_and_metrics(model, X_test, Y_test)
-    plot_training_history(history)
-    plot_predicted_vs_data(model, X_train, Y_train, label='In Sample {}'.format(city), pred_window=predict_n,
-                           factor=max_features[target_col])
-    plot_predicted_vs_data(model, X_test, Y_test, label='Out of Sample {}'.format(city), pred_window=predict_n,
-                           factor=max_features[target_col])
-    print(cluster)
-    return None
+    predicted_out, metrics_out = evaluate(city, model, X_test, Y_test, label='out_of_sample_{}'.format(city))
+
+    if plot:
+        plot_training_history(history)
+        predicted_in, metrics_in = evaluate(city, model, X_train, Y_train, label='in_sample_{}'.format(city))
+        plot_predicted_vs_data(predicted_in, Y_train, label='In Sample {}'.format(city), pred_window=predict_n,
+                               factor=max_features[target_col])
+        plot_predicted_vs_data(predicted_out, Y_test, label='Out of Sample {}'.format(city), pred_window=predict_n,
+                               factor=max_features[target_col])
+    return metrics_out[1]
+
+
+
+def single_prediction(city, state, predict_n, time_window, hidden, epochs, random=False):
+    if random==True:
+        data, group = random_data(10, state, city)
+    else:
+        with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
+            clusters = pickle.load(fp)
+        data, group = get_cluster_data(city, clusters)
+
+    metric = train_evaluate_model(city, data, predict_n, time_window, hidden, plot=False, epochs=epochs)
+    # codes = pd.read_excel('../../data/codigos_{}.xlsx'.format(state),
+    #                       names=['city', 'code'], header=None).set_index('code').T
+    # cluster = [codes[i] for i in group]
+    # print(cluster)
+    return metric
 
 
 def cluster_prediction(state, predict_n, time_window, hidden, epochs):
@@ -266,8 +250,9 @@ if __name__ == "__main__":
     state = 'RJ'
     epochs = 1
 
-    single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, random=True)
+    single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN)
     # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
+
 
     ## Optimize Hyperparameters
     #
