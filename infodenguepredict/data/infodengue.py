@@ -141,6 +141,7 @@ def combined_data(municipio):
 def get_cluster_data(geocode, clusters):
     to_drop = ['casos_est_min', 'casos_est_max', 'Localidade_id', 'versao_modelo',
                'municipio_nome', 'casos_est', 'municipio_geocodigo', 'nivel']
+
     cluster = list(filter(lambda x: geocode in x, clusters))[0]
 
     full_data = pd.DataFrame()
