@@ -10,6 +10,13 @@ from sqlalchemy import create_engine
 from decouple import config
 
 
+db_engine = create_engine("postgresql://{}:{}@{}/{}".format(
+    settings.PSQL_USER,
+    settings.PSQL_PASSWORD,
+    settings.PSQL_HOST,
+    settings.PSQL_DB
+))
+
 def get_alerta_table(municipio=None, state=None):
     """
     Pulls the data from a single city, cities from a state or all cities from the InfoDengue
@@ -109,6 +116,18 @@ def get_rain_data(geocode, sensor="chuva"):
     df.set_index('datahora', inplace=True)
     return df
 
+def get_city_names(geocodigos):
+    """
+    Fetch names of the cities from a list of geocodes.
+    :param geocodigos: list of 7-digit geocodes.
+    :return:
+    """
+    with db_engine.connect() as conexao:
+        res = conexao.execute('select geocodigo, nome from Dengue_global.Municipio geocodigo in {};'.format(geocodigos))
+        res = res.fetchall()
+
+    return res
+
 
 def build_multicity_dataset(state) -> pd.DataFrame:
     """
@@ -128,9 +147,9 @@ def build_multicity_dataset(state) -> pd.DataFrame:
 
 def combined_data(municipio):
     """
-
-    :param municipio:
-    :return:
+    Returns combined dataframe with incidence, tweets, and temperature
+    :param municipio: geocode
+    :return: Dataframe
     """
     alerta_table = get_alerta_table(municipio=municipio)
     tweets = get_tweet_data(municipio)
