@@ -127,6 +127,11 @@ def build_multicity_dataset(state) -> pd.DataFrame:
 
 
 def combined_data(municipio):
+    """
+
+    :param municipio:
+    :return:
+    """
     alerta_table = get_alerta_table(municipio=municipio)
     tweets = get_tweet_data(municipio)
     tweets = tweets.resample('W').sum()
@@ -139,6 +144,12 @@ def combined_data(municipio):
 
 
 def get_cluster_data(geocode, clusters):
+    """
+
+    :param geocode:
+    :param clusters:
+    :return:
+    """
     to_drop = ['casos_est_min', 'casos_est_max', 'Localidade_id', 'versao_modelo',
                'municipio_nome', 'casos_est', 'municipio_geocodigo', 'nivel']
 
@@ -159,8 +170,8 @@ def get_example_table(geocode=None):
     :return: pandas dataframe
     """
     raw_df = get_alerta_table(geocode)
-    filtered_df  = raw_df[['SE', 'casos_est', 'casos_est_min', 'casos_est_max',
-       'casos', 'municipio_geocodigo', 'p_rt1', 'p_inc100k', 'nivel']]
+    filtered_df = raw_df[['SE', 'casos_est', 'casos_est_min', 'casos_est_max',
+                          'casos', 'municipio_geocodigo', 'p_rt1', 'p_inc100k', 'nivel']]
     filtered_df['SE'] = [int(str(x)[-2:]) for x in filtered_df.SE]
 
     return filtered_df
@@ -182,6 +193,13 @@ def get_complete_table(geocode=None):
 
 
 def random_data(N, state, city=None):
+    """
+
+    :param N:
+    :param state:
+    :param city:
+    :return:
+    """
     to_drop = ['casos_est_min', 'casos_est_max', 'Localidade_id', 'versao_modelo',
                'municipio_nome', 'casos_est', 'municipio_geocodigo', 'nivel']
 
@@ -201,5 +219,3 @@ def random_data(N, state, city=None):
         full_data = pd.concat([tmp, full_data], axis=1).fillna(method='ffill')
 
     return full_data, random_group
-
-
