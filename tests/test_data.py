@@ -3,7 +3,7 @@ Tests related to data fetching code
 """
 
 import unittest
-from infodenguepredict.data.infodengue import get_temperature_data, get_alerta_table, get_tweet_data, build_multicity_dataset
+from infodenguepredict.data.infodengue import get_temperature_data, get_alerta_table, get_tweet_data, build_multicity_dataset, get_city_names
 from infodenguepredict.data.satellite import  LandSurfaceTemperature
 import pandas as pd
 import os
@@ -36,6 +36,10 @@ class TestInfodengue(unittest.TestCase):
         self.assertIsInstance(df, pd.DataFrame)
         self.assertGreater(df.size, 0)
         self.assertGreater(df.municipio_geocodigo.value_counts().size, 1)
+
+    def test_get_city_names(self):
+        names = get_city_names([3304557, 4118204])
+        self.assertEqual([(3304557,'Rio de Janeiro'), (4118204,'Paranaguá')], names)
 
 class TestSatellite(unittest.TestCase):
     def test_get_5d_image(self):

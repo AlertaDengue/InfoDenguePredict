@@ -11,10 +11,10 @@ from decouple import config
 
 
 db_engine = create_engine("postgresql://{}:{}@{}/{}".format(
-    settings.PSQL_USER,
-    settings.PSQL_PASSWORD,
-    settings.PSQL_HOST,
-    settings.PSQL_DB
+    config('PSQL_USER'),
+    config('PSQL_PASSWORD'),
+    config('PSQL_HOST'),
+    config('PSQL_DB')
 ))
 
 def get_alerta_table(municipio=None, state=None):
@@ -123,7 +123,7 @@ def get_city_names(geocodigos):
     :return:
     """
     with db_engine.connect() as conexao:
-        res = conexao.execute('select geocodigo, nome from Dengue_global.Municipio geocodigo in {};'.format(geocodigos))
+        res = conexao.execute('select geocodigo, nome from "Dengue_global"."Municipio" WHERE geocodigo in {};'.format(tuple(geocodigos)))
         res = res.fetchall()
 
     return res
