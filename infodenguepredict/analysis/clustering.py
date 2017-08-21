@@ -20,11 +20,11 @@ def hierarchical_clustering(df, method='complete'):
 
 
 def create_cluster(state):
-    cities_list = alocate_data("RJ")
+    cities_list = alocate_data(state)
     dists = distance(cities_list)
     Z, clusters = hierarchical_clustering(dists)
 
-    with open('clusters_{}.pkl'.format('RJ'), 'wb') as fp:
+    with open('clusters_{}.pkl'.format(state), 'wb') as fp:
         pickle.dump(clusters, fp)
 
     print("{} clusters saved".format(state))
