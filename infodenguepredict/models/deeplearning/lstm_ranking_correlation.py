@@ -23,7 +23,7 @@ def rank_cities(state):
 
 if __name__ == "__main__":
     TIME_WINDOW = 4
-    HIDDEN = 64
+    HIDDEN = 4
     LOOK_BACK = 4
     BATCH_SIZE = 1
     prediction_window = 3  # weeks
