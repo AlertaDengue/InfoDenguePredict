@@ -177,7 +177,7 @@ def loss_and_metrics(model, Xtest, Ytest):
 
 
 def single_prediction(city, state, predict_n, time_window, hidden, random=False):
-    codes = pd.read_excel('../../data/codigos_rj.xlsx', names=['city', 'code'], header=None).set_index('code').T
+    codes = pd.read_excel('../../data/codigos_PR.xlsx', names=['city', 'code'], header=None).set_index('code').T
 
     if random==True:
         data, group = random_data(10, state, city)
@@ -262,9 +262,9 @@ if __name__ == "__main__":
     LOOK_BACK = 4
     BATCH_SIZE = 1
     prediction_window = 3  # weeks
-    city = 3303500
-    state = 'RJ'
-    epochs = 1
+    city = 4118204#3303500
+    state = 'PR'
+    epochs = 50
 
     single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, random=True)
     # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
