@@ -28,10 +28,10 @@ def create_cluster(state):
         pickle.dump(clusters, fp)
 
     print("{} clusters saved".format(state))
-    return Z
+    return Z, [int(c) for c in cities_list]
 
 if __name__ == "__main__":
-    Z = create_cluster("RJ")
+    Z, geocs = create_cluster("RJ")
 
     plt.figure(figsize=(25, 10))
     plt.title('Hierarchical Clustering Dendrogram')

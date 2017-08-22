@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import combined_data
 
 
-def build_model(data, ar=4, sc=4, family=pf.families.Poisson, formula=None):
+def build_model(data, family=pf.families.Laplace, formula=None):
     if formula is None:
-        formula = "casos~1"
-    model = pf.GASX(data=data, ar=ar, sc=sc, family=family(), formula=formula)
+        formula = "casos~temp_min"
+    model = pf.GASReg(data=data, family=family(), formula=formula)
     return model
 
 
@@ -29,13 +29,14 @@ if __name__ == "__main__":
     # print(Full.describe())
 
     # Full.to_csv('data.csv.gz', compression='gzip')
-    model = build_model(Full.dropna(), ar=4, sc=6, formula='casos~1+numero')
-    fit = model.fit('PML')#'BBVI', iterations=1000, optimizer='RMSProp')
+    Full.columns = [cn.replace('_','') for cn in Full.columns]
+    model = build_model(Full.dropna(), formula='casos~numero+tempmin+umidmin')
+    fit = model.fit()#'BBVI', iterations=1000, optimizer='RMSProp')
 
     print(fit.summary())
-    model.plot_fit()
-    plt.savefig('GASX_in_sample.png')
+    model.plot_fit(intervals=False)
+    plt.savefig('GASReg_in_sample.png')
     model.plot_parameters()
     model.plot_predict(h=5, past_values=12)
-    plt.savefig('GASX_prediction.png')
+    plt.savefig('GASReg_prediction.png')
     plt.show()

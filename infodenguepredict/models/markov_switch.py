@@ -9,21 +9,21 @@ import statsmodels as sm
 from statsmodels.api import graphics
 from datetime import datetime
 import matplotlib.pyplot as plt
-from infodenguepredict.data.infodengue import get_alerta_table
+from infodenguepredict.data.infodengue import get_alerta_table, combined_data
 
 
 def build_model(data):
     model = sm.tsa.regime_switching.markov_autoregression.\
         MarkovAutoregression(endog=data.casos, k_regimes=2,
-                             exog=data[['p_rt1', 'p_inc100k']],
+                             exog=data[['p_rt1', 'p_inc100k', 'numero']],
                              order=2)
     return model
 
 
 if __name__ == "__main__":
     prediction_window = 5  # weeks
-    data = get_alerta_table(3304557)  # Nova Iguaçu: 3303609
-    data.casos_est.plot()
+    data = combined_data(3304557)  # Nova Iguaçu: 3303609
+    data.casos.plot()
     # Graph data autocorrelation
     fig, axes = plt.subplots(1, 2, figsize=(15, 4))
 
@@ -49,4 +49,4 @@ if __name__ == "__main__":
     plt.legend(loc=0)
     plt.show()
 
-    plt.savefig('sarimax_prediction.jpg')
+    plt.savefig('markov_prediction.jpg')

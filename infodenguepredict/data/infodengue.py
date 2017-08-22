@@ -196,19 +196,19 @@ def get_example_table(geocode=None):
     return filtered_df
 
 
-def get_complete_table(geocode=None):
-    """
-    Extends Example table with temperature, humidity atmospheric pressure and Tweets
-    :param geocode:
-    :return:
-    """
-    df = get_example_table(geocode=geocode)
-    T = get_temperature_data(geocode)
-    Tw = get_tweet_data(municipio=geocode)
-    Tw.pop('Municipio_geocodigo')
-    Tw.pop('CID10_codigo')
-    complete = df.join(T).join(Tw).dropna()
-    return complete
+# def get_complete_table(geocode=None):
+#     """
+#     Extends Example table with temperature, humidity atmospheric pressure and Tweets
+#     :param geocode:
+#     :return:
+#     """
+#     df = get_example_table(geocode=geocode)
+#     T = get_temperature_data(geocode)
+#     Tw = get_tweet_data(municipio=geocode)
+#     Tw.pop('Municipio_geocodigo')
+#     Tw.pop('CID10_codigo')
+#     complete = df.join(T).join(Tw).dropna()
+#     return complete
 
 
 def random_data(N, state, city=None):

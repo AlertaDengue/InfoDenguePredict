@@ -13,15 +13,15 @@ def build_model(data, ar=2, sc=4, family=pf.families.Poisson, target=None):
 
 if __name__ == "__main__":
     prediction_window = 5  # weeks
-    data = get_alerta_table(3304557)  # Nova Iguaçu: 3303609
+    data = get_alerta_table(3303609)  # Nova Iguaçu: 3303609
     # data.casos.plot()
-    model = build_model(data, ar=2, sc=6, target='casos')
+    model = build_model(data, ar=2, sc=5, target='casos')
     fit = model.fit()#'BBVI',iterations=1000,optimizer='RMSProp')
     print(fit.summary())
     model.plot_fit()
     model.plot_z(figsize=(15, 5))
     plt.savefig('GAS_in_sample.png')
     data.casos.plot(style='ko')
-    model.plot_predict(h=10, past_values=52)
+    model.plot_predict(h=5, past_values=12,)
     plt.savefig('GAS_prediction.png')
-    # plt.show()
+    plt.show()

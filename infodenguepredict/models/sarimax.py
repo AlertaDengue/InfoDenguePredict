@@ -20,6 +20,7 @@ def build_model(data, endog, exog, **kwargs):
                                       time_varying_regression=False,
                                       mle_regression=False,
                                       enforce_stationarity=True,
+                                      enforce_invertibility=False,
                                       **kwargs)
 
 
@@ -27,7 +28,7 @@ def build_model(data, endog, exog, **kwargs):
 
 
 if __name__ == "__main__":
-    prediction_window = 5  # weeks
+    prediction_window = 3  # weeks
     city = 3304557
     state = 'RJ'
 
@@ -35,12 +36,12 @@ if __name__ == "__main__":
     with open('clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
 
-    data = get_cluster_data(city, clusters)
-    label= 'casos_{}'.format(city)
+    data, cluster_n = get_cluster_data(city, clusters)
+    label = 'casos_{}'.format(city)
     features = list(data.columns)
     features.remove(label)
 
-    data[label].plot()
+    # data[label].plot()
 
     # Graph data autocorrelation
     fig, axes = plt.subplots(1, 2, figsize=(15, 4))
@@ -59,7 +60,7 @@ if __name__ == "__main__":
     predict_ci = predict.conf_int()
     # predictdy = fit.get_prediction(start='2017-01-01', dynamic=True)
     # predictdy_ci = predictdy.conf_int()
-    data[label].plot(style='o',label='obs')
+    data[label].plot(style='o', label='obs')
     predict.predicted_mean.plot(style='r--', label='one step ahead')
     # predictdy.predicted_mean.plot(style='g', label='Dynamic forecast')
     plt.fill_between(predict_ci.index, predict_ci.ix[:, 0], predict_ci.ix[:, 1], color='r', alpha=0.1)
@@ -68,12 +69,12 @@ if __name__ == "__main__":
     plt.savefig('sarimax_prediction.jpg')
 
     ## Forecast
-    forecast = fit.get_prediction(start='2017-05-21', end='2017-09-21', dynamic=False)
-    forecast_ci = forecast.conf_int()
-    forecast.predicted_mean.plot(style='b--', label='one step ahead')
-    plt.fill_between(forecast_ci.index, forecast_ci.ix[:, 0], forecast_ci.ix[:, 1], color='b', alpha=0.1)
-    plt.legend(loc=0)
-    plt.title('Out-of-Sample forecast')
+    # forecast = fit.get_prediction(start='2017-05-21', end='2017-09-21', dynamic=False)
+    # forecast_ci = forecast.conf_int()
+    # forecast.predicted_mean.plot(style='b--', label='one step ahead')
+    # plt.fill_between(forecast_ci.index, forecast_ci.ix[:, 0], forecast_ci.ix[:, 1], color='b', alpha=0.1)
+    # plt.legend(loc=0)
+    # plt.title('Out-of-Sample forecast')
 
     plt.show()
 
