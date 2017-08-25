@@ -19,7 +19,7 @@ def hierarchical_clustering(df, method='complete'):
     return Z, clusters
 
 
-def create_cluster(state):
+def create_cluster(state, cols):
     cities_list = alocate_data(state)
     dists = distance(cities_list, cols)
     Z, clusters = hierarchical_clustering(dists)
@@ -31,10 +31,10 @@ def create_cluster(state):
     return Z, [int(c) for c in cities_list]
 
 if __name__ == "__main__":
-    Z, geocs = create_cluster("RJ")
     # cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
     #         'temp_max', 'umid_min', 'pressao_min']
     cols = ['casos', 'p_rt1', 'p_inc100k', 'numero']
+    Z, geocs = create_cluster("RJ", cols)
 
     plt.figure(figsize=(25, 10))
     plt.title('Hierarchical Clustering Dendrogram')
