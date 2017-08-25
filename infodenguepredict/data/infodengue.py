@@ -153,10 +153,10 @@ def combined_data(municipio):
     """
     alerta_table = get_alerta_table(municipio=municipio)
     tweets = get_tweet_data(municipio)
-    tweets = tweets.resample('W').sum()
+    tweets = tweets.resample('W').apply(pd.np.nansum)
 
     weather = get_temperature_data(municipio)
-    weather = weather.resample('W').mean()
+    weather = weather.resample('W').apply(pd.np.nanmean)
 
     full_data = pd.concat([alerta_table, tweets, weather], axis=1, join='inner')
     return full_data

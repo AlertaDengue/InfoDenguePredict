@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 from infodenguepredict.analysis.distance import distance, alocate_data
 from infodenguepredict.data.infodengue import get_city_names
 
-def hierarchical_clustering(df, t, method='average'):
+
+def hierarchical_clustering(df, t, method='complete'):
     """
     :param method: Clustering method
     :param df: Triangular distances matrix
@@ -23,6 +24,7 @@ def hierarchical_clustering(df, t, method='average'):
 
 def create_cluster(state, cols, t):
     cities_list = alocate_data(state)
+    # print(cities_list)
     dists = distance(cities_list, cols)
     Z, clusters = hierarchical_clustering(dists, t=t)
 
@@ -33,19 +35,21 @@ def create_cluster(state, cols, t):
     name_ind = get_city_names(list(dists.index))
     return Z, name_ind
 
+
 def llf(id):
     return name_ind[id][1]
 
+
 if __name__ == "__main__":
-    # cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
-    #         'temp_max', 'umid_min', 'pressao_min']
-    cols = ['casos', 'p_rt1', 'p_inc100k', 'numero']
-    t = 0.6
-    Z, name_ind = create_cluster("RJ", cols, t)
+    state = "ES"
+    cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
+            'temp_max', 'umid_min', 'pressao_min']
+    # cols = ['casos', 'p_rt1', 'p_inc100k', 'numero']
+    t = 0.6  # threshold for coloring the dendrogram
+    Z, name_ind = create_cluster(state, cols, t)
 
     plt.figure(figsize=(25, 10))
-    plt.title('Hierarchical Clustering Dendrogram')
-    plt.xlabel('sample index')
+    # plt.title('Hierarchical Clustering for {}'.format(state))
     plt.ylabel('distance')
     hac.dendrogram(
         Z,
@@ -54,5 +58,5 @@ if __name__ == "__main__":
         leaf_label_func=llf,
         color_threshold=t * max(Z[:, 2])
     )
-    plt.savefig('cluster_{}.png'.format(t))
+    plt.savefig('cluster{}_{}.png'.format(state, t), dpi=300, bbox_inches='tight')
     plt.show()

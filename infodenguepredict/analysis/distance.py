@@ -15,10 +15,18 @@ def get_cities_from_state(state):
 
 
 def alocate_data(state):
-    cities_list = get_cities_from_state(state)
+    cities_list = list(get_cities_from_state(state))
+    bad_cities = []
     for city in cities_list:
-        full_city = combined_data(city).dropna()
+        try:
+            full_city = combined_data(city).dropna()
+        except TypeError as e:
+            print("Skipping: ", city)
+            bad_cities.append(city)
+            continue
         full_city.to_pickle('city_{}.pkl'.format(city))
+    for c in bad_cities:
+        cities_list.remove(c)
     return cities_list
 
 def correlation(df_1, df_2):
@@ -54,7 +62,7 @@ def distance(cities_list, cols):
     #         'temp_max', 'umid_min', 'pressao_min']
 
     for pos, city_1 in enumerate(cities_list):
-        print(city_1)
+        print("Calculating distance Matrix for ", city_1)
         full_city_1 = pd.read_pickle('city_{}.pkl'.format(city_1))[cols]
         new_col = list(np.zeros(pos + 1))
         for city_2 in cities_list[pos + 1:]:
