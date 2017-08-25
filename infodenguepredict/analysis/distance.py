@@ -2,6 +2,8 @@ import numpy as np;
 import pandas as pd
 import scipy.spatial.distance as spd
 from functools import lru_cache
+# from scipy.signal import correlate
+
 
 from infodenguepredict.data.infodengue import get_alerta_table, combined_data
 
@@ -27,11 +29,29 @@ def correlation(df_1, df_2):
         corr_list.append(corr[0])
     return np.nanmean(corr_list)
 
-def distance(cities_list):
+def cross_correlation(df_1, df_2, max_lag=5):
+    corr_list = []
+    for col in df_1.columns:
+        corrs = [np.correlate(df_1[col], df_2[col].shift(lag)) for lag in range(max_lag)]
+        corr = np.argmax(corrs)
+        lag = range(max_lag)[corrs.index(corr)]
+        corr_list.append(corr)
+    return np.nanmean(corr_list)
+
+
+
+    return np.nanmean(corr_list)
+
+def distance(cities_list, cols):
+    """
+    returns the correlation distance matrix for a list of cities.
+    :param cities_list: List of geocodes
+    :return:
+    """
     state_distances = pd.DataFrame(index=cities_list)
 
-    cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
-            'temp_max', 'umid_min', 'pressao_min']
+    # cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
+    #         'temp_max', 'umid_min', 'pressao_min']
 
     for pos, city_1 in enumerate(cities_list):
         print(city_1)

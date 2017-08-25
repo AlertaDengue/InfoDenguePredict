@@ -6,7 +6,6 @@ from scipy.spatial import distance as ssd
 import matplotlib.pyplot as plt
 from infodenguepredict.analysis.distance import distance, alocate_data
 from infodenguepredict.data.infodengue import get_city_names
-from functools import lru_cache
 
 def hierarchical_clustering(df, t, method='average'):
     """
@@ -21,10 +20,10 @@ def hierarchical_clustering(df, t, method='average'):
     clusters = [group[1][1].values for group in grouped]
     return Z, clusters
 
-@lru_cache(maxsize=None)
-def create_cluster(state, t):
+
+def create_cluster(state, cols, t):
     cities_list = alocate_data(state)
-    dists = distance(cities_list)
+    dists = distance(cities_list, cols)
     Z, clusters = hierarchical_clustering(dists, t=t)
 
     with open('clusters_{}.pkl'.format(state), 'wb') as fp:
@@ -38,10 +37,11 @@ def llf(id):
     return name_ind[id][1]
 
 if __name__ == "__main__":
-    # for t in np.arange(0.6):
-    #     print(t)
+    # cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
+    #         'temp_max', 'umid_min', 'pressao_min']
+    cols = ['casos', 'p_rt1', 'p_inc100k', 'numero']
     t = 0.6
-    Z, name_ind = create_cluster("RJ", t)
+    Z, name_ind = create_cluster("RJ", cols, t)
 
     plt.figure(figsize=(25, 10))
     plt.title('Hierarchical Clustering Dendrogram')
