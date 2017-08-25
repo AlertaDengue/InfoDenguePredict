@@ -21,7 +21,7 @@ def hierarchical_clustering(df, method='complete'):
 
 def create_cluster(state):
     cities_list = alocate_data(state)
-    dists = distance(cities_list)
+    dists = distance(cities_list, cols)
     Z, clusters = hierarchical_clustering(dists)
 
     with open('clusters_{}.pkl'.format(state), 'wb') as fp:
