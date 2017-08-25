@@ -32,6 +32,9 @@ def create_cluster(state):
 
 if __name__ == "__main__":
     Z, geocs = create_cluster("RJ")
+    # cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
+    #         'temp_max', 'umid_min', 'pressao_min']
+    cols = ['casos', 'p_rt1', 'p_inc100k', 'numero']
 
     plt.figure(figsize=(25, 10))
     plt.title('Hierarchical Clustering Dendrogram')
