@@ -89,7 +89,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     model.add(Dense(predict_n, activation='relu'))
 
     start = time()
-    model.compile(loss="poisson", optimizer="nadam", metrics=['accuracy', 'mape', 'rmse'])
+    model.compile(loss="poisson", optimizer="nadam", metrics=['accuracy', 'mape'])
     print("Compilation Time : ", time() - start)
     # plot_model(model, to_file='LSTM_model.png')
     return model
