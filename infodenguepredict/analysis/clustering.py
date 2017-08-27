@@ -41,7 +41,7 @@ def llf(id):
 
 
 if __name__ == "__main__":
-    state = "ES"
+    state = "RJ"
     cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
             'temp_max', 'umid_min', 'pressao_min']
     # cols = ['casos', 'p_rt1', 'p_inc100k', 'numero']

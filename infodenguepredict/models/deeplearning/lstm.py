@@ -89,7 +89,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     model.add(Dense(predict_n, activation='relu'))
 
     start = time()
-    model.compile(loss="poisson", optimizer="nadam", metrics=['accuracy', 'mape'])
+    model.compile(loss="poisson", optimizer="nadam", metrics=['accuracy', 'mape', 'rmse'])
     print("Compilation Time : ", time() - start)
     # plot_model(model, to_file='LSTM_model.png')
     return model
@@ -183,6 +183,17 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
 
 
 def single_prediction(city, state, predict_n, time_window, hidden, epochs, random=False):
+    """
+    Fit an LSTM model to generate predictions for a city, Using its cluster as regressors. 
+    :param city: geocode of the target city
+    :param state: State containing the city
+    :param predict_n: How many weeks ahead to predict
+    :param time_window: Look-back time window length used by the model
+    :param hidden: Number of hidden layers in each LSTM unit
+    :param epochs: Number of epochs of training
+    :param random: If the model should be trained on a random selection of ten cities of the same state.
+    :return: 
+    """
     if random==True:
         data, group = random_data(10, state, city)
     else:
@@ -246,11 +257,11 @@ if __name__ == "__main__":
     LOOK_BACK = 4
     BATCH_SIZE = 1
     prediction_window = 3  # weeks
-    city = 4118204#3303500
-    state = 'PR'
+    city = 3303500
+    state = 'RJ'
     epochs = 50
 
-    single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN)
+    single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
     # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
 
 
