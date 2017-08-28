@@ -168,7 +168,7 @@ def evaluate(city, model, Xdata, Ydata, label):
     return predicted, metrics
 
 
-def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epochs, cluster=True):
+def train_evaluate_model(city, data, predict_n, look_back, hidden, plot, epochs, cluster=True):
     if cluster:
         target_col = list(data.columns).index('casos_{}'.format(city))
     else:
@@ -177,7 +177,7 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
 
     ##split test and train
     X_train, Y_train, X_test, Y_test = split_data(norm_data,
-                                                  look_back=time_window, ratio=.7,
+                                                  look_back=look_back, ratio=.7,
                                                   predict_n=predict_n, Y_column=target_col)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
@@ -185,7 +185,7 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
     indice = [i.date() for i in indice]
 
     ## Run model
-    model = build_model(hidden, X_train.shape[2], predict_n=predict_n, look_back=time_window)
+    model = build_model(hidden, X_train.shape[2], predict_n=predict_n ,look_back=look_back)
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
     # model.save('lstm_model')
 
@@ -202,13 +202,13 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
     return metrics_out[1]
 
 
-def single_prediction(city, state, predictors, predict_n, time_window, hidden, epochs, random=False):
+def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, random=False):
     """
     Fit an LSTM model to generate predictions for a city, Using its cluster as regressors.
     :param city: geocode of the target city
     :param state: State containing the city
     :param predict_n: How many weeks ahead to predict
-    :param time_window: Look-back time window length used by the model
+    :param look_back: Look-back time window length used by the model
     :param hidden: Number of hidden layers in each LSTM unit
     :param epochs: Number of epochs of training
     :param random: If the model should be trained on a random selection of ten cities of the same state.
@@ -221,7 +221,7 @@ def single_prediction(city, state, predictors, predict_n, time_window, hidden, e
             clusters = pickle.load(fp)
         data, group = get_cluster_data(city, clusters, cols=predictors)
 
-    metric = train_evaluate_model(city, data, predict_n, time_window, hidden, plot=True, epochs=epochs)
+    metric = train_evaluate_model(city, data, predict_n, look_back, hidden, plot=True, epochs=epochs)
     # codes = pd.read_excel('../../data/codigos_{}.xlsx'.format(state),
     #                       names=['city', 'code'], header=None).set_index('code').T
     return metric
@@ -270,7 +270,7 @@ def cluster_prediction(state, predict_n, time_window, hidden, epochs):
 
 if __name__ == "__main__":
 
-    single_prediction(city, state, predictors, predict_n=prediction_window, time_window=TIME_WINDOW,
+    single_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK,
                       hidden=HIDDEN, epochs=epochs)
     # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
 

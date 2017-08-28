@@ -22,11 +22,20 @@ def hierarchical_clustering(df, t, method='complete'):
     clusters = [group[1][1].values for group in grouped]
     return Z, clusters
 
+def matrix_cluster(cities_list, clusters):
+    df = pd.DataFrame(index=cities_list, columns=['cluster'])
+    for pos, cluster in enumerate(clusters):
+        df.loc[cluster] = pos
+
+    df.to_csv('list_cluster_{}.csv'.format(state))
+    return 'List of clusters csv saved'
 
 def create_cluster(state, cols, t):
     cities_list = alocate_data(state)
     dists = distance(cities_list, cols)
     Z, clusters = hierarchical_clustering(dists, t=t)
+
+    matrix_cluster(cities_list=cities_list, clusters=clusters)
 
     with open('clusters_{}.pkl'.format(state), 'wb') as fp:
         pickle.dump(clusters, fp)
@@ -54,6 +63,10 @@ if __name__ == "__main__":
         leaf_label_func=llf,
         color_threshold=color_treshold * max(Z[:, 2])
     )
+
+    plt.savefig('cluster{}_{}.png'.format(state, t), dpi=300, bbox_inches='tight')
+    plt.show()
+
 
     plt.savefig('cluster{}_{}.png'.format(state, color_treshold), dpi=300, bbox_inches='tight')
     plt.show()
