@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from infodenguepredict.analysis.distance import distance, alocate_data
 from infodenguepredict.data.infodengue import get_city_names
 
-
 def hierarchical_clustering(df, t, method='complete'):
     """
     :param method: Clustering method
@@ -24,7 +23,6 @@ def hierarchical_clustering(df, t, method='complete'):
 
 def create_cluster(state, cols, t):
     cities_list = alocate_data(state)
-    # print(cities_list)
     dists = distance(cities_list, cols)
     Z, clusters = hierarchical_clustering(dists, t=t)
 
@@ -34,7 +32,6 @@ def create_cluster(state, cols, t):
     print("{} clusters saved".format(state))
     name_ind = get_city_names(list(dists.index))
     return Z, name_ind
-
 
 def llf(id):
     return name_ind[id][1]
@@ -48,9 +45,11 @@ if __name__ == "__main__":
     t = 0.6  # threshold for coloring the dendrogram
     Z, name_ind = create_cluster(state, cols, t)
 
-    plt.figure(figsize=(25, 10))
-    # plt.title('Hierarchical Clustering for {}'.format(state))
-    plt.ylabel('distance')
+    plt.figure(figsize=(25, 35))
+    # plt.title('Hierarchical Clustering Dendrogram')
+    # plt.xlabel('sample index')
+    # plt.ylabel('distance')
+    # plt.tight_layout()
     hac.dendrogram(
         Z,
         leaf_rotation=90.,  # rotates the x axis labels

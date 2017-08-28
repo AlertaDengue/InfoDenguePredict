@@ -14,7 +14,7 @@ from hyperas import optim
 from hyperopt import Trials, STATUS_OK, tpe
 
 from time import time
-from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, get_cluster_data, random_data
+from infodenguepredict.data.infodengue import combined_data, get_cluster_data, random_data
 from infodenguepredict.models.deeplearning.preprocessing import split_data, normalize_data
 
 
@@ -127,18 +127,20 @@ def plot_training_history(hist):
     P.savefig("LSTM_training_history.png")
 
 
-def plot_predicted_vs_data(predicted, Ydata, label, pred_window, factor):
+def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor):
     P.clf()
     df_predicted = pd.DataFrame(predicted).T
-    for n in range(df_predicted.shape[1]):
-        P.plot(range(n, n + pred_window), pd.DataFrame(Ydata.T)[n]*factor, 'k-')
-        P.plot(range(n, n + pred_window), df_predicted[n]*factor, 'g:o', alpha=0.5)
+    for n in range(df_predicted.shape[1]-pred_window):
+        P.plot(indice[n: n + pred_window], pd.DataFrame(Ydata.T)[n]*factor, 'k-')
+        P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-')
+        P.vlines(indice[n: n + pred_window], np.zeros(pred_window), df_predicted[n]*factor, 'b', alpha=0.2)
     P.grid()
-    P. title(label)
+    P.title(label)
     P.xlabel('weeks')
     P.ylabel('incidence')
+    P.xticks(rotation=70)
     P.legend([label, 'predicted'])
-    P.savefig("lstm_{}.png".format(label))
+    P.savefig("lstm_{}.png".format(label), bbox_inches='tight' ,dpi=300)
 
 
 def loss_and_metrics(model, Xtest, Ytest):
@@ -154,8 +156,11 @@ def evaluate(city, model, Xdata, Ydata, label):
     return predicted, metrics
 
 
-def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epochs):
-    target_col = list(data.columns).index('casos_{}'.format(city))
+def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epochs, cluster=True):
+    if cluster:
+        target_col = list(data.columns).index('casos_{}'.format(city))
+    else:
+        target_col = list(data.columns).index('casos')
     norm_data, max_features = normalize_data(data)
 
     ##split test and train
@@ -163,6 +168,9 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
                                                   look_back=time_window, ratio=.7,
                                                   predict_n=predict_n, Y_column=target_col)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
+
+    indice = list(data.index)
+    indice = [i.date() for i in indice]
 
     ## Run model
     model = build_model(hidden, X_train.shape[2], predict_n=predict_n ,look_back=time_window)
@@ -174,17 +182,16 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
     if plot:
         plot_training_history(history)
         predicted_in, metrics_in = evaluate(city, model, X_train, Y_train, label='in_sample_{}'.format(city))
-        plot_predicted_vs_data(predicted_in, Y_train, label='In Sample {}'.format(city), pred_window=predict_n,
+        plot_predicted_vs_data(predicted_in, Y_train, indice[:len(Y_train)], label='In Sample {}'.format(city), pred_window=predict_n,
                                factor=max_features[target_col])
-        plot_predicted_vs_data(predicted_out, Y_test, label='Out of Sample {}'.format(city), pred_window=predict_n,
+        plot_predicted_vs_data(predicted_out, Y_test, indice[len(Y_train):], label='Out of Sample {}'.format(city), pred_window=predict_n,
                                factor=max_features[target_col])
     return metrics_out[1]
 
 
-
 def single_prediction(city, state, predict_n, time_window, hidden, epochs, random=False):
     """
-    Fit an LSTM model to generate predictions for a city, Using its cluster as regressors. 
+    Fit an LSTM model to generate predictions for a city, Using its cluster as regressors.
     :param city: geocode of the target city
     :param state: State containing the city
     :param predict_n: How many weeks ahead to predict
@@ -192,7 +199,7 @@ def single_prediction(city, state, predict_n, time_window, hidden, epochs, rando
     :param hidden: Number of hidden layers in each LSTM unit
     :param epochs: Number of epochs of training
     :param random: If the model should be trained on a random selection of ten cities of the same state.
-    :return: 
+    :return:
     """
     if random==True:
         data, group = random_data(10, state, city)
@@ -201,7 +208,7 @@ def single_prediction(city, state, predict_n, time_window, hidden, epochs, rando
             clusters = pickle.load(fp)
         data, group = get_cluster_data(city, clusters)
 
-    metric = train_evaluate_model(city, data, predict_n, time_window, hidden, plot=False, epochs=epochs)
+    metric = train_evaluate_model(city, data, predict_n, time_window, hidden, plot=True, epochs=epochs)
     # codes = pd.read_excel('../../data/codigos_{}.xlsx'.format(state),
     #                       names=['city', 'code'], header=None).set_index('code').T
     # cluster = [codes[i] for i in group]
@@ -257,13 +264,20 @@ if __name__ == "__main__":
     LOOK_BACK = 4
     BATCH_SIZE = 1
     prediction_window = 3  # weeks
-    city = 3303500
+    city = 3304557
     state = 'RJ'
     epochs = 50
+
+    cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
+            'temp_max', 'umid_min', 'pressao_min']
 
     single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
     # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
 
+    # city_data = combined_data(city)
+    # city_data = city_data[cols]
+    # train_evaluate_model(city, city_data, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN,
+    #                      plot=True, epochs=epochs, cluster=False)
 
     ## Optimize Hyperparameters
     #
