@@ -164,7 +164,7 @@ def combined_data(municipio):
 
 def get_cluster_data(geocode, clusters):
     """
-
+    Returns the concatenated wide format table of all the variables in the cluster of a city.
     :param geocode:
     :param clusters:
     :return:

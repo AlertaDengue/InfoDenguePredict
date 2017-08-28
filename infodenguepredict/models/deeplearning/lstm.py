@@ -174,9 +174,11 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
     if plot:
         plot_training_history(history)
         predicted_in, metrics_in = evaluate(city, model, X_train, Y_train, label='in_sample_{}'.format(city))
-        plot_predicted_vs_data(predicted_in, Y_train, label='In Sample {}'.format(city), pred_window=predict_n,
+        plot_predicted_vs_data(predicted_in, Y_train, label='In Sample {}'.format(city),
+                               pred_window=predict_n,
                                factor=max_features[target_col])
-        plot_predicted_vs_data(predicted_out, Y_test, label='Out of Sample {}'.format(city), pred_window=predict_n,
+        plot_predicted_vs_data(predicted_out, Y_test, label='Out of Sample {}'.format(city),
+                               pred_window=predict_n,
                                factor=max_features[target_col])
     return metrics_out[1]
 
@@ -259,7 +261,7 @@ if __name__ == "__main__":
     prediction_window = 3  # weeks
     city = 3303500
     state = 'RJ'
-    epochs = 50
+    epochs = 250
 
     single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
     # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
