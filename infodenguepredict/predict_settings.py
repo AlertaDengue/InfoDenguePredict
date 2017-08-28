@@ -29,7 +29,6 @@ predictors = [
     'pressao_min'
 ]
 
-TIME_WINDOW = 4
 HIDDEN = 4
 LOOK_BACK = 4
 BATCH_SIZE = 1
