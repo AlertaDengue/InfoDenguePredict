@@ -182,10 +182,9 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
     if plot:
         plot_training_history(history)
         predicted_in, metrics_in = evaluate(city, model, X_train, Y_train, label='in_sample_{}'.format(city))
-        plot_predicted_vs_data(predicted_in, Y_train, indice[:len(Y_train)], label='In Sample {}'.format(city), pred_window=predict_n,
-                               pred_window=predict_n,
-                               factor=max_features[target_col])
-        plot_predicted_vs_data(predicted_out, Y_test, indice[len(Y_train):], label='Out of Sample {}'.format(city), pred_window=predict_n,
+        plot_predicted_vs_data(predicted_in, Y_train, indice[:len(Y_train)], label='In Sample {}'.format(city),
+                               pred_window=predict_n,factor=max_features[target_col])
+        plot_predicted_vs_data(predicted_out, Y_test, indice[len(Y_train):], label='Out of Sample {}'.format(city),
                                pred_window=predict_n,
                                factor=max_features[target_col])
     return metrics_out[1]
@@ -268,7 +267,7 @@ if __name__ == "__main__":
     prediction_window = 3  # weeks
     city = 3304557
     state = 'RJ'
-    epochs = 250
+    epochs = 50
 
     cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
             'temp_max', 'umid_min', 'pressao_min']

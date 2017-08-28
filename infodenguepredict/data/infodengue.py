@@ -171,7 +171,7 @@ def get_cluster_data(geocode, clusters):
     :return:
     """
     to_drop = ['casos_est_min', 'casos_est_max', 'Localidade_id', 'versao_modelo',
-               'municipio_nome', 'casos_est', 'municipio_geocodigo', 'nivel', 'CID10_codigo']
+               'municipio_nome', 'casos_est', 'municipio_geocodigo', 'nivel']#, 'CID10_codigo']
 
     cluster = list(filter(lambda x: geocode in x, clusters))[0]
 
