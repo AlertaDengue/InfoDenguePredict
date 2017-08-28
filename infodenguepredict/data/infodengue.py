@@ -7,6 +7,7 @@ for remote database access, we recommend establishing an SSH tunnel:
 import pandas as pd
 import random
 from sqlalchemy import create_engine
+from infodenguepredict.predict_settings import *
 from decouple import config
 
 
@@ -116,6 +117,7 @@ def get_rain_data(geocode, sensor="chuva"):
     df.set_index('datahora', inplace=True)
     return df
 
+
 def get_city_names(geocodigos):
     """
     Fetch names of the cities from a list of geocodes.
@@ -129,16 +131,18 @@ def get_city_names(geocodigos):
     return res
 
 
-def build_multicity_dataset(state) -> pd.DataFrame:
+def build_multicity_dataset(state, cols=None) -> pd.DataFrame:
     """
     Fetches a data table for the specfied state, and converts it from long to wide format,
     so that it can be fed straight to th models.
     :param state: Two letter code for the state
+    :param cols: List of columns to return. If None, return all columns from dataframe
     :return: Panda DataFrame
     """
     full_data = get_alerta_table(state=state)
-    for col in ['casos_est_min', 'casos_est_max', 'Localidade_id', 'versao_modelo', 'municipio_nome']:
-        del full_data[col]
+    if cols:
+        full_data = full_data[cols]
+
     full_data = full_data.pivot(index=full_data.index, columns='municipio_geocodigo')
     full_data.columns = ['{}_{}'.format(*col).strip() for col in full_data.columns.values]
 
@@ -152,32 +156,33 @@ def combined_data(municipio):
     :return: Dataframe
     """
     alerta_table = get_alerta_table(municipio=municipio)
-    # tweets = get_tweet_data(municipio)
-    # tweets = tweets.resample('W').apply(pd.np.nansum)
+    tweets = get_tweet_data(municipio)
+    tweets = tweets.resample('W').apply(pd.np.nansum)
 
     weather = get_temperature_data(municipio)
     weather = weather.resample('W').apply(pd.np.nanmean)
 
-    # full_data = pd.concat([alerta_table, tweets, weather], axis=1, join='inner').fillna(method='ffill')
-    full_data = pd.concat([alerta_table, weather], axis=1, join='inner').fillna(method='ffill')
+    full_data = pd.concat([alerta_table, tweets, weather], axis=1, join='inner').fillna(method='ffill')
+    # full_data = pd.concat([alerta_table, weather], axis=1, join='inner').fillna(method='ffill')
     return full_data
 
 
-def get_cluster_data(geocode, clusters):
+def get_cluster_data(geocode, clusters, cols=None):
     """
     Returns the concatenated wide format table of all the variables in the cluster of a city.
-    :param geocode:
-    :param clusters:
-    :return:
+    :param geocode: 7-digit geocode
+    :param clusters: List of clusters
+    :parm cols: List of columns to return. If None, return all columns from dataframe
+    :return: Pandas DataFrame
     """
-    to_drop = ['casos_est_min', 'casos_est_max', 'Localidade_id', 'versao_modelo',
-               'municipio_nome', 'casos_est', 'municipio_geocodigo', 'nivel']#, 'CID10_codigo']
 
     cluster = list(filter(lambda x: geocode in x, clusters))[0]
 
     full_data = pd.DataFrame()
     for city_code in cluster:
-        tmp = combined_data(city_code).drop(to_drop, axis=1)
+        tmp = combined_data(city_code)
+        if cols:
+            tmp = tmp[cols]
         tmp.columns = ['{}_{}'.format(col, city_code) for col in tmp.columns.values]
         full_data = pd.concat([tmp, full_data], axis=1).fillna(method='ffill')
 
@@ -212,16 +217,15 @@ def get_example_table(geocode=None):
 #     return complete
 
 
-def random_data(N, state, city=None):
+def random_data(N, state, cols=None, city=None):
     """
 
     :param N:
     :param state:
+    :parm cols:
     :param city:
     :return:
     """
-    to_drop = ['casos_est_min', 'casos_est_max', 'Localidade_id', 'versao_modelo',
-               'municipio_nome', 'casos_est', 'municipio_geocodigo', 'nivel']
 
     alerta_table = get_alerta_table(state=state)
     cities_list = alerta_table.municipio_geocodigo.unique()
@@ -234,7 +238,9 @@ def random_data(N, state, city=None):
 
     full_data = pd.DataFrame()
     for city_code in random_group:
-        tmp = combined_data(city_code).drop(to_drop, axis=1)
+        tmp = combined_data(city_code)
+        if cols:
+            tmp = tmp[cols]
         tmp.columns = ['{}_{}'.format(col, city_code) for col in tmp.columns.values]
         full_data = pd.concat([tmp, full_data], axis=1).fillna(method='ffill')
 

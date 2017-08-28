@@ -199,7 +199,7 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
     return metrics_out[1]
 
 
-def single_prediction(city, state, predict_n, time_window, hidden, epochs, random=False):
+def single_prediction(city, state, predictors, predict_n, time_window, hidden, epochs, random=False):
     """
     Fit an LSTM model to generate predictions for a city, Using its cluster as regressors.
     :param city: geocode of the target city
@@ -216,7 +216,7 @@ def single_prediction(city, state, predict_n, time_window, hidden, epochs, rando
     else:
         with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
             clusters = pickle.load(fp)
-        data, group = get_cluster_data(city, clusters)
+        data, group = get_cluster_data(city, clusters, cols=predictors)
 
     metric = train_evaluate_model(city, data, predict_n, time_window, hidden, plot=True, epochs=epochs)
     # codes = pd.read_excel('../../data/codigos_{}.xlsx'.format(state),
@@ -267,7 +267,8 @@ def cluster_prediction(state, predict_n, time_window, hidden, epochs):
 
 if __name__ == "__main__":
 
-    single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
+    single_prediction(city, state, predictors, predict_n=prediction_window, time_window=TIME_WINDOW,
+                      hidden=HIDDEN, epochs=epochs)
     # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
 
     # city_data = combined_data(city)
