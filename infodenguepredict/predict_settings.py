@@ -7,8 +7,7 @@ license: GPL V3 or Later
 #=======Clustering parameters========
 # Variables to include in the correlation distance
 cluster_vars = [
-    "casos",
-    "numero"
+    "casos"
 ]
 
 
