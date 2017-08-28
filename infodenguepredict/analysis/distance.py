@@ -47,9 +47,6 @@ def cross_correlation(df_1, df_2, max_lag=5):
     return np.nanmean(corr_list)
 
 
-
-    return np.nanmean(corr_list)
-
 def distance(cities_list, cols):
     """
     returns the correlation distance matrix for a list of cities.
