@@ -2,6 +2,7 @@ import numpy as np;
 import pandas as pd
 import scipy.spatial.distance as spd
 from functools import lru_cache
+from infodenguepredict.predict_settings import *
 # from scipy.signal import correlate
 
 
@@ -24,7 +25,7 @@ def alocate_data(state):
             print("Skipping: ", city)
             bad_cities.append(city)
             continue
-        full_city.to_pickle('city_{}.pkl'.format(city))
+        full_city.to_pickle('{}/city_{}.pkl'.format(tmp_path,city))
     for c in bad_cities:
         cities_list.remove(c)
     return cities_list
@@ -60,10 +61,10 @@ def distance(cities_list, cols):
 
     for pos, city_1 in enumerate(cities_list):
         print("Calculating distance Matrix for ", city_1)
-        full_city_1 = pd.read_pickle('city_{}.pkl'.format(city_1))[cols]
+        full_city_1 = pd.read_pickle('{}/city_{}.pkl'.format(tmp_path, city_1))[cols]
         new_col = list(np.zeros(pos + 1))
         for city_2 in cities_list[pos + 1:]:
-            full_city_2 = pd.read_pickle('city_{}.pkl'.format(city_2))[cols]
+            full_city_2 = pd.read_pickle('{}/city_{}.pkl'.format(tmp_path, city_2))[cols]
 
             dist = correlation(full_city_1, full_city_2)
             new_col.append(dist)

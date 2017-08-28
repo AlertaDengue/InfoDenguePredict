@@ -16,7 +16,7 @@ from hyperopt import Trials, STATUS_OK, tpe
 from time import time
 from infodenguepredict.data.infodengue import combined_data, get_cluster_data, random_data
 from infodenguepredict.models.deeplearning.preprocessing import split_data, normalize_data
-
+from infodenguepredict.predict_settings import *
 
 def optimize_model(x_train, y_train, x_test, y_test, features):
     model = Sequential()
@@ -95,7 +95,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
                     bias_initializer='zeros'))
 
     start = time()
-    model.compile(loss="poisson", optimizer="nadam", metrics=['accuracy', 'mape'])
+    model.compile(loss="mse", optimizer="nadam", metrics=['accuracy', 'mape'])
     print("Compilation Time : ", time() - start)
     # plot_model(model, to_file='LSTM_model.png')
     return model
@@ -128,7 +128,7 @@ def plot_training_history(hist):
     """
     df_vloss = pd.DataFrame(hist.history['val_loss'], columns=['val_loss'])
     df_loss = pd.DataFrame(hist.history['loss'], columns=['loss'])
-    df_mape = pd.DataFrame(hist.history['mape'], columns=['mape'])
+    df_mape = pd.DataFrame(hist.history['mean_absolute_percentage_error'], columns=['mape'])
     ax = df_vloss.plot(logy=True);
     df_loss.plot(ax=ax, grid=True, logy=True);
     df_mape.plot(ax=ax, grid=True, logy=True);
@@ -149,6 +149,7 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor)
     P.xticks(rotation=70)
     P.legend([label, 'predicted'])
     P.savefig("lstm_{}.png".format(label), bbox_inches='tight', dpi=300)
+    P.show()
 
 
 def loss_and_metrics(model, Xtest, Ytest):
@@ -220,8 +221,6 @@ def single_prediction(city, state, predict_n, time_window, hidden, epochs, rando
     metric = train_evaluate_model(city, data, predict_n, time_window, hidden, plot=True, epochs=epochs)
     # codes = pd.read_excel('../../data/codigos_{}.xlsx'.format(state),
     #                       names=['city', 'code'], header=None).set_index('code').T
-    # cluster = [codes[i] for i in group]
-    # print(cluster)
     return metric
 
 
@@ -267,17 +266,6 @@ def cluster_prediction(state, predict_n, time_window, hidden, epochs):
 
 
 if __name__ == "__main__":
-    TIME_WINDOW = 4
-    HIDDEN = 4
-    LOOK_BACK = 4
-    BATCH_SIZE = 1
-    prediction_window = 3  # weeks
-    city = 3304557
-    state = 'RJ'
-    epochs = 250
-
-    cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
-            'temp_max', 'umid_min', 'pressao_min']
 
     single_prediction(city, state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
     # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
