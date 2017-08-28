@@ -19,5 +19,4 @@ predictors = [
     "numero",
     "temp_min",
     "umid_min",
-
 ]

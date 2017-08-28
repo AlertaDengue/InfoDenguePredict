@@ -18,9 +18,7 @@ from infodenguepredict.data.infodengue import combined_data, get_cluster_data, r
 from infodenguepredict.models.deeplearning.preprocessing import split_data, normalize_data
 
 
-
 def optimize_model(x_train, y_train, x_test, y_test, features):
-
     model = Sequential()
 
     model.add(LSTM({{choice([4, 8, 16])}}, input_shape=({{choice([2, 3, 4])}}, features), stateful=True,
@@ -72,21 +70,29 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
                    return_sequences=True,
                    dropout=0.2,
                    recurrent_dropout=0.2,
+                   implementation=2,
+                   unit_forget_bias=True
                    ))
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                    batch_input_shape=(batch_size, look_back, features),
                    return_sequences=True,
                    dropout=0.2,
                    recurrent_dropout=0.2,
+                   implementation=2,
+                   unit_forget_bias=True
                    ))
 
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                    batch_input_shape=(batch_size, look_back, features),
                    dropout=0.2,
-                   recurrent_dropout=0.2
+                   recurrent_dropout=0.2,
+                   implementation=2,
+                   unit_forget_bias=True
                    ))
 
-    model.add(Dense(predict_n, activation='relu'))
+    model.add(Dense(predict_n, activation='relu',
+                    kernel_initializer='random_uniform',
+                    bias_initializer='zeros'))
 
     start = time()
     model.compile(loss="poisson", optimizer="nadam", metrics=['accuracy', 'mape'])
@@ -109,7 +115,7 @@ def train(model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwr
                      validation_split=0.15,
                      verbose=1,
                      callbacks=[TB_callback])
-    with open('history_{}.pkl'.format(geocode),'wb') as f:
+    with open('history_{}.pkl'.format(geocode), 'wb') as f:
         pickle.dump(hist.history, f)
     model.save_weights('trained_{}_model.h5'.format(geocode), overwrite=overwrite)
     return hist
@@ -122,25 +128,27 @@ def plot_training_history(hist):
     """
     df_vloss = pd.DataFrame(hist.history['val_loss'], columns=['val_loss'])
     df_loss = pd.DataFrame(hist.history['loss'], columns=['loss'])
+    df_mape = pd.DataFrame(hist.history['mape'], columns=['mape'])
     ax = df_vloss.plot(logy=True);
     df_loss.plot(ax=ax, grid=True, logy=True);
+    df_mape.plot(ax=ax, grid=True, logy=True);
     P.savefig("LSTM_training_history.png")
 
 
 def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor):
     P.clf()
     df_predicted = pd.DataFrame(predicted).T
-    for n in range(df_predicted.shape[1]-pred_window):
-        P.plot(indice[n: n + pred_window], pd.DataFrame(Ydata.T)[n]*factor, 'k-')
+    for n in range(df_predicted.shape[1] - pred_window):
+        P.plot(indice[n: n + pred_window], pd.DataFrame(Ydata.T)[n] * factor, 'k-')
         P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-')
-        P.vlines(indice[n: n + pred_window], np.zeros(pred_window), df_predicted[n]*factor, 'b', alpha=0.2)
+        P.vlines(indice[n: n + pred_window], np.zeros(pred_window), df_predicted[n] * factor, 'b', alpha=0.2)
     P.grid()
     P.title(label)
     P.xlabel('weeks')
     P.ylabel('incidence')
     P.xticks(rotation=70)
     P.legend([label, 'predicted'])
-    P.savefig("lstm_{}.png".format(label), bbox_inches='tight' ,dpi=300)
+    P.savefig("lstm_{}.png".format(label), bbox_inches='tight', dpi=300)
 
 
 def loss_and_metrics(model, Xtest, Ytest):
@@ -173,7 +181,7 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
     indice = [i.date() for i in indice]
 
     ## Run model
-    model = build_model(hidden, X_train.shape[2], predict_n=predict_n ,look_back=time_window)
+    model = build_model(hidden, X_train.shape[2], predict_n=predict_n, look_back=time_window)
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
     # model.save('lstm_model')
 
@@ -183,7 +191,7 @@ def train_evaluate_model(city, data, predict_n, time_window, hidden, plot, epoch
         plot_training_history(history)
         predicted_in, metrics_in = evaluate(city, model, X_train, Y_train, label='in_sample_{}'.format(city))
         plot_predicted_vs_data(predicted_in, Y_train, indice[:len(Y_train)], label='In Sample {}'.format(city),
-                               pred_window=predict_n,factor=max_features[target_col])
+                               pred_window=predict_n, factor=max_features[target_col])
         plot_predicted_vs_data(predicted_out, Y_test, indice[len(Y_train):], label='Out of Sample {}'.format(city),
                                pred_window=predict_n,
                                factor=max_features[target_col])
@@ -202,7 +210,7 @@ def single_prediction(city, state, predict_n, time_window, hidden, epochs, rando
     :param random: If the model should be trained on a random selection of ten cities of the same state.
     :return:
     """
-    if random==True:
+    if random == True:
         data, group = random_data(10, state, city)
     else:
         with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
@@ -236,27 +244,26 @@ def cluster_prediction(state, predict_n, time_window, hidden, epochs):
         for (city, ax) in targets:
             target_col = list(data.columns).index('casos_{}'.format(city))
             norm_data, max_features = normalize_data(data)
-            #model
+            # model
             X_train, Y_train, X_test, Y_test = split_data(norm_data,
                                                           look_back=time_window, ratio=.7,
                                                           predict_n=predict_n, Y_column=target_col)
             model = build_model(hidden, X_train.shape[2], time_window, 1)
             history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
 
-            #plot
+            # plot
             predicted = model.predict(X_test, batch_size=1, verbose=1)
             df_predicted = pd.DataFrame(predicted).T
             factor = max_features[target_col]
             for n in range(df_predicted.shape[1]):
-                ax.plot(range(n, n + predict_n), pd.DataFrame(Y_test.T)[n]*factor, 'k-')
-                ax.plot(range(n, n + predict_n), df_predicted[n]*factor, 'g:o', alpha=0.5)
+                ax.plot(range(n, n + predict_n), pd.DataFrame(Y_test.T)[n] * factor, 'k-')
+                ax.plot(range(n, n + predict_n), df_predicted[n] * factor, 'g:o', alpha=0.5)
             ax.grid()
             ax.set_title(codes[city])
         P.savefig('cluster_{}.png'.format(i), dpi=400)
         # P.show()
 
     return None
-
 
 
 if __name__ == "__main__":
@@ -267,7 +274,7 @@ if __name__ == "__main__":
     prediction_window = 3  # weeks
     city = 3304557
     state = 'RJ'
-    epochs = 50
+    epochs = 250
 
     cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
             'temp_max', 'umid_min', 'pressao_min']
@@ -290,7 +297,3 @@ if __name__ == "__main__":
     #                                       algo=tpe.suggest,
     #                                       max_evals=5,
     #                                       trials=Trials())
-
-
-
-
