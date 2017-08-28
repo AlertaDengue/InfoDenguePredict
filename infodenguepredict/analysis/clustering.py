@@ -52,7 +52,7 @@ if __name__ == "__main__":
         leaf_rotation=90.,  # rotates the x axis labels
         leaf_font_size=8.,  # font size for the x axis labels
         leaf_label_func=llf,
-        color_threshold=t * max(Z[:, 2])
+        color_threshold=color_treshold * max(Z[:, 2])
     )
     plt.show()
     plt.savefig('cluster{}_{}.png'.format(state, t), dpi=300, bbox_inches='tight')
