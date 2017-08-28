@@ -2,10 +2,12 @@ import pickle
 import pandas as pd
 import numpy as np
 import scipy.cluster.hierarchy as hac
-from scipy.spatial import distance as ssd
 import matplotlib.pyplot as plt
+
+from scipy.spatial import distance as ssd
 from infodenguepredict.analysis.distance import distance, alocate_data
 from infodenguepredict.data.infodengue import get_city_names
+from infodenguepredict.predict_settings import *
 
 def hierarchical_clustering(df, t, method='complete'):
     """
@@ -38,14 +40,9 @@ def llf(id):
 
 
 if __name__ == "__main__":
-    state = "RJ"
-    cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
-            'temp_max', 'umid_min', 'pressao_min']
-    # cols = ['casos', 'p_rt1', 'p_inc100k', 'numero']
-    t = 0.6  # threshold for coloring the dendrogram
-    Z, name_ind = create_cluster(state, cols, t)
+    Z, name_ind = create_cluster(state, cluster_vars, color_treshold)
 
-    plt.figure(figsize=(25, 35))
+    plt.figure(figsize=(25, 10))
     # plt.title('Hierarchical Clustering Dendrogram')
     # plt.xlabel('sample index')
     # plt.ylabel('distance')
@@ -55,7 +52,8 @@ if __name__ == "__main__":
         leaf_rotation=90.,  # rotates the x axis labels
         leaf_font_size=8.,  # font size for the x axis labels
         leaf_label_func=llf,
-        color_threshold=t * max(Z[:, 2])
+        color_threshold=color_treshold * max(Z[:, 2])
     )
-    plt.savefig('cluster{}_{}.png'.format(state, t), dpi=300, bbox_inches='tight')
     plt.show()
+    plt.savefig('cluster{}_{}.png'.format(state, t), dpi=300, bbox_inches='tight')
+
