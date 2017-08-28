@@ -68,6 +68,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                    batch_input_shape=(batch_size, look_back, features),
                    return_sequences=True,
+                   # activation='relu',
                    dropout=0.2,
                    recurrent_dropout=0.2,
                    implementation=2,
@@ -76,6 +77,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                    batch_input_shape=(batch_size, look_back, features),
                    return_sequences=True,
+                   # activation='relu',
                    dropout=0.2,
                    recurrent_dropout=0.2,
                    implementation=2,
@@ -84,6 +86,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
 
     model.add(LSTM(hidden, input_shape=(look_back, features), stateful=True,
                    batch_input_shape=(batch_size, look_back, features),
+                   # activation='relu',
                    dropout=0.2,
                    recurrent_dropout=0.2,
                    implementation=2,
