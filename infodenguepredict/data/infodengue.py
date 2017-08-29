@@ -149,21 +149,23 @@ def build_multicity_dataset(state, cols=None) -> pd.DataFrame:
     return full_data
 
 
-def combined_data(municipio):
+def combined_data(municipio, tweet=False):
     """
     Returns combined dataframe with incidence, tweets, and temperature
     :param municipio: geocode
     :return: Dataframe
     """
     alerta_table = get_alerta_table(municipio=municipio)
-    tweets = get_tweet_data(municipio)
-    tweets = tweets.resample('W').apply(pd.np.nansum)
 
     weather = get_temperature_data(municipio)
     weather = weather.resample('W').apply(pd.np.nanmean)
+    if tweet:
+        tweets = get_tweet_data(municipio)
+        tweets = tweets.resample('W').apply(pd.np.nansum)
+        full_data = pd.concat([alerta_table, tweets, weather], axis=1, join='inner').fillna(method='ffill')
+    else:
+        full_data = pd.concat([alerta_table, weather], axis=1, join='inner').fillna(method='ffill')
 
-    full_data = pd.concat([alerta_table, tweets, weather], axis=1, join='inner').fillna(method='ffill')
-    # full_data = pd.concat([alerta_table, weather], axis=1, join='inner').fillna(method='ffill')
     return full_data
 
 
