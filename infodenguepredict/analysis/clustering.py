@@ -34,7 +34,7 @@ def create_cluster(state, cols, t):
     cities_list = alocate_data(state)
     dists = distance(cities_list, cols)
     Z, clusters = hierarchical_clustering(dists, t=t)
-
+    print(clusters)
     matrix_cluster(cities_list=cities_list, clusters=clusters)
 
     with open('clusters_{}.pkl'.format(state), 'wb') as fp:
@@ -64,9 +64,6 @@ if __name__ == "__main__":
         color_threshold=color_treshold * max(Z[:, 2])
     )
 
-    plt.savefig('cluster{}_{}.png'.format(state, t), dpi=300, bbox_inches='tight')
-    plt.show()
-
-
     plt.savefig('cluster{}_{}.png'.format(state, color_treshold), dpi=300, bbox_inches='tight')
     plt.show()
+
