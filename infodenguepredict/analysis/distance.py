@@ -1,14 +1,11 @@
 import numpy as np;
 import pandas as pd
 import scipy.spatial.distance as spd
-from functools import lru_cache
 from infodenguepredict.predict_settings import *
 # from scipy.signal import correlate
 
-
 from infodenguepredict.data.infodengue import get_alerta_table, combined_data
 
-@lru_cache()
 def get_cities_from_state(state):
     alerta_table = get_alerta_table(state=state)
     cities_list = alerta_table.municipio_geocodigo.unique()
@@ -20,7 +17,7 @@ def alocate_data(state):
     bad_cities = []
     for city in cities_list:
         try:
-            full_city = combined_data(city)
+            full_city = combined_data(city, data_types=data_types)
             full_city.to_pickle('{}/city_{}.pkl'.format(tmp_path, city))
         except TypeError as e:
             print("Skipping: ", city)
@@ -30,6 +27,7 @@ def alocate_data(state):
         cities_list.remove(c)
     return cities_list
 
+
 def correlation(df_1, df_2):
     corr_list = []
     for col in df_1.columns:
@@ -37,6 +35,7 @@ def correlation(df_1, df_2):
         corr = spd.pdist(df.T.as_matrix(), metric='correlation')
         corr_list.append(corr[0])
     return np.nanmean(corr_list)
+
 
 def cross_correlation(df_1, df_2, max_lag=5):
     corr_list = []
@@ -57,13 +56,11 @@ def distance(cities_list, cols):
     """
     state_distances = pd.DataFrame(index=cities_list)
 
-    # cols = ['casos', 'p_rt1', 'p_inc100k', 'numero', 'temp_min',
-    #         'temp_max', 'umid_min', 'pressao_min']
-
     for pos, city_1 in enumerate(cities_list):
         print("Calculating distance Matrix for ", city_1)
         full_city_1 = pd.read_pickle('{}/city_{}.pkl'.format(tmp_path, city_1))[cols]
         new_col = list(np.zeros(pos + 1))
+
         for city_2 in cities_list[pos + 1:]:
             full_city_2 = pd.read_pickle('{}/city_{}.pkl'.format(tmp_path, city_2))[cols]
 
@@ -72,6 +69,4 @@ def distance(cities_list, cols):
         state_distances[city_1] = new_col
 
     return state_distances
-
-
 
