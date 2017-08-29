@@ -4,9 +4,8 @@ Created on 28/08/17
 by fccoelho
 license: GPL V3 or Later
 """
-#======Global Model parameters=======
+#======Global Importing parameters=======
 state = 'RJ'
-
 
 #=======Clustering parameters========
 # Variables to include in the correlation distance
@@ -18,11 +17,15 @@ tmp_path = '/tmp' #path to temporary files for clustering aux data
 
 #=======LSTM parameters==============
 
+# Data_types: list of types of data to get into combined_data function
+# Possible types: 'alerta', 'weather', 'tweet'
+data_types = ['alerta', 'weather']
+
+# Predictors must change to fit data_types list
 predictors = [
     'casos',
     'p_rt1',
     'p_inc100k',
-    'numero',
     'temp_min',
     'temp_max',
     'umid_min',
