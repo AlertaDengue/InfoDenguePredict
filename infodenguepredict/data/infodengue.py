@@ -149,7 +149,7 @@ def build_multicity_dataset(state, cols=None) -> pd.DataFrame:
     return full_data
 
 
-def combined_data(municipio, tweet=False):
+def combined_data(municipio, tweet=None):
     """
     Returns combined dataframe with incidence, tweets, and temperature
     :param municipio: geocode

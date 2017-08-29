@@ -20,12 +20,12 @@ def alocate_data(state):
     bad_cities = []
     for city in cities_list:
         try:
-            full_city = combined_data(city).dropna()
+            full_city = combined_data(city)
+            full_city.to_pickle('{}/city_{}.pkl'.format(tmp_path, city))
         except TypeError as e:
             print("Skipping: ", city)
             bad_cities.append(city)
             continue
-        full_city.to_pickle('{}/city_{}.pkl'.format(tmp_path,city))
     for c in bad_cities:
         cities_list.remove(c)
     return cities_list
@@ -52,6 +52,7 @@ def distance(cities_list, cols):
     """
     returns the correlation distance matrix for a list of cities.
     :param cities_list: List of geocodes
+    :param cols: columns to calculate the correlation
     :return:
     """
     state_distances = pd.DataFrame(index=cities_list)

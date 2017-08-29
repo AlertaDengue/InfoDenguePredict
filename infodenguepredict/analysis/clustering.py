@@ -9,6 +9,7 @@ from infodenguepredict.analysis.distance import distance, alocate_data
 from infodenguepredict.data.infodengue import get_city_names
 from infodenguepredict.predict_settings import *
 
+
 def hierarchical_clustering(df, t, method='complete'):
     """
     :param method: Clustering method
@@ -22,6 +23,7 @@ def hierarchical_clustering(df, t, method='complete'):
     clusters = [group[1][1].values for group in grouped]
     return Z, clusters
 
+
 def matrix_cluster(cities_list, clusters):
     df = pd.DataFrame(index=cities_list, columns=['cluster'])
     for pos, cluster in enumerate(clusters):
@@ -29,6 +31,7 @@ def matrix_cluster(cities_list, clusters):
 
     df.to_csv('list_cluster_{}.csv'.format(state))
     return 'List of clusters csv saved'
+
 
 def create_cluster(state, cols, t):
     cities_list = alocate_data(state)
@@ -43,6 +46,7 @@ def create_cluster(state, cols, t):
     print("{} clusters saved".format(state))
     name_ind = get_city_names(list(dists.index))
     return Z, name_ind
+
 
 def llf(id):
     return name_ind[id][1]
@@ -64,5 +68,5 @@ if __name__ == "__main__":
         color_threshold=color_treshold * max(Z[:, 2])
     )
 
-    plt.savefig('cluster{}_{}.png'.format(state, t), dpi=300, bbox_inches='tight')
+    plt.savefig('cluster{}_{}.png'.format(state, color_treshold), dpi=300, bbox_inches='tight')
     plt.show()
