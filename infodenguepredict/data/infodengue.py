@@ -149,40 +149,46 @@ def build_multicity_dataset(state, cols=None) -> pd.DataFrame:
     return full_data
 
 
-def combined_data(municipio, tweet=None):
+def combined_data(municipio, data_types):
     """
     Returns combined dataframe with incidence, tweets, and temperature
     :param municipio: geocode
+    :param data_types: types of data to concatenate ->[alerta, tweet, weather])
     :return: Dataframe
     """
-    alerta_table = get_alerta_table(municipio=municipio)
+    to_concat = []
+    if 'alerta' in data_types:
+        alerta_table = get_alerta_table(municipio=municipio)
+        to_concat.append(alerta_table)
 
-    weather = get_temperature_data(municipio)
-    weather = weather.resample('W').apply(pd.np.nanmean)
-    if tweet:
+    if 'weather' in data_types:
+        weather = get_temperature_data(municipio)
+        weather = weather.resample('W').apply(pd.np.nanmean)
+        to_concat.append(weather)
+
+    if 'tweet' in data_types:
         tweets = get_tweet_data(municipio)
         tweets = tweets.resample('W').apply(pd.np.nansum)
-        full_data = pd.concat([alerta_table, tweets, weather], axis=1, join='inner').fillna(method='ffill')
-    else:
-        full_data = pd.concat([alerta_table, weather], axis=1, join='inner').fillna(method='ffill')
+        to_concat.append(tweets)
 
+    full_data = pd.concat(to_concat, axis=1, join='inner').fillna(method='ffill')
     return full_data
 
 
-def get_cluster_data(geocode, clusters, cols=None):
+def get_cluster_data(geocode, clusters, data_types, cols=None):
     """
     Returns the concatenated wide format table of all the variables in the cluster of a city.
     :param geocode: 7-digit geocode
     :param clusters: List of clusters
+    :param data_types: types of data to  on combined_data function ->[alerta, tweet, weather])
     :parm cols: List of columns to return. If None, return all columns from dataframe
     :return: Pandas DataFrame
     """
-
     cluster = list(filter(lambda x: geocode in x, clusters))[0]
 
     full_data = pd.DataFrame()
     for city_code in cluster:
-        tmp = combined_data(city_code)
+        tmp = combined_data(city_code, data_types)
         if cols:
             tmp = tmp[cols]
         tmp.columns = ['{}_{}'.format(col, city_code) for col in tmp.columns.values]
