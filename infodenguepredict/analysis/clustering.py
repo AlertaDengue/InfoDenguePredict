@@ -66,4 +66,3 @@ if __name__ == "__main__":
 
     plt.savefig('cluster{}_{}.png'.format(state, color_treshold), dpi=300, bbox_inches='tight')
     plt.show()
-
