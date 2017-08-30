@@ -102,7 +102,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     start = time()
     model.compile(loss="msle", optimizer="nadam", metrics=['accuracy', 'mape'])
     print("Compilation Time : ", time() - start)
-    # plot_model(model, to_file='LSTM_model.png')
+    plot_model(model, to_file='LSTM_model.png')
     print(model.summary())
     return model
 
@@ -184,7 +184,20 @@ def evaluate(city, model, Xdata, Ydata, label):
     return predicted, metrics
 
 
-def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, cluster=True):
+def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, cluster=True, load=False):
+    """
+    Train the model
+    :param city:
+    :param data:
+    :param predict_n:
+    :param look_back:
+    :param hidden:
+    :param plot:
+    :param epochs:
+    :param cluster:
+    :param load: Whether to load a previously saved model
+    :return:
+    """
     if cluster:
         target_col = list(data.columns).index('casos_{}'.format(city))
     else:
@@ -200,8 +213,9 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, clust
 
     ## Run model
     model = build_model(hidden, X_train.shape[2], predict_n=predict_n, look_back=look_back)
+    if load:
+        model.load_weights("trained_{}_model.h5".format(city))
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
-    # plot_training_history(history)
     # model.save('lstm_model')
 
     predicted_out, metrics_out = evaluate(city, model, X_test, Y_test, label='out_of_sample_{}'.format(city))
