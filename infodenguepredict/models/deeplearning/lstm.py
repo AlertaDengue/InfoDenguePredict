@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import math
+import re
 import string as str
 from matplotlib import pyplot as P
 from keras.layers.core import Dense, Activation, Dropout
@@ -44,7 +45,7 @@ def optimize_model(x_train, y_train, x_test, y_test, features):
     model.add(Dense(prediction_window, activation='relu'))
 
     start = time()
-    model.compile(loss="mse", optimizer="rmsprop", )
+    model.compile(loss="msle", optimizer="rmsprop", )
     model.fit(x_train, y_train,
               batch_size=1,
               nb_epoch=1,
@@ -99,9 +100,9 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
                     bias_initializer='zeros'))
 
     start = time()
-    model.compile(loss="mse", optimizer="nadam", metrics=['accuracy', 'mape'])
+    model.compile(loss="msle", optimizer="nadam", metrics=['accuracy', 'mape'])
     print("Compilation Time : ", time() - start)
-    plot_model(model, to_file='LSTM_model.png')
+    # plot_model(model, to_file='LSTM_model.png')
     print(model.summary())
     return model
 
@@ -183,7 +184,7 @@ def evaluate(city, model, Xdata, Ydata, label):
     return predicted, metrics
 
 
-def train_evaluate_model(city, data, predict_n, look_back, hidden, plot, epochs, cluster=True):
+def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, cluster=True):
     if cluster:
         target_col = list(data.columns).index('casos_{}'.format(city))
     else:
@@ -196,33 +197,20 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, plot, epochs,
                                                   predict_n=predict_n, Y_column=target_col)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
-    indice = list(data.index)
-    indice = [i.date() for i in indice]
 
     ## Run model
     model = build_model(hidden, X_train.shape[2], predict_n=predict_n, look_back=look_back)
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
+    plot_training_history(history)
     # model.save('lstm_model')
 
     predicted_out, metrics_out = evaluate(city, model, X_test, Y_test, label='out_of_sample_{}'.format(city))
+    predicted_in, metrics_in = evaluate(city, model, X_train, Y_train, label='in_sample_{}'.format(city))
 
-    if plot:
-        city_name = get_city_names([city, 0])[0][1]
-        plot_training_history(history)
-        predicted_in, metrics_in = evaluate(city, model, X_train, Y_train,
-                                            label='in_sample_{}'.format(city))
-        # plot_predicted_vs_data(predicted_in, Y_train, indice[:len(Y_train)],
-        #                        label='In Sample {}'.format(city),
-        #                        pred_window=predict_n,
-        #                        factor=max_features[target_col])
-        plot_predicted_vs_data(np.concatenate((predicted_in, predicted_out), axis=0),
-                               np.concatenate((Y_train, Y_test), axis=0),
-                               indice[:],
-                               label='Predictions for {}'.format(city_name),
-                               pred_window=predict_n,
-                               factor=max_features[target_col],
-                               split_point=len(Y_train))
-    return metrics_out[1]
+    predicted = np.concatenate((predicted_in, predicted_out), axis=0)
+    factor = max_features[target_col]
+
+    return predicted, Y_test, Y_train, factor
 
 
 def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, random=False):
@@ -245,58 +233,81 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
         data, group = get_cluster_data(geocode=city, clusters=clusters,
                                        data_types=data_types, cols=predictors)
 
-    metric = train_evaluate_model(city, data, predict_n, look_back, hidden, plot=True, epochs=epochs)
-    # codes = pd.read_excel('../../data/codigos_{}.xlsx'.format(state),
-    #                       names=['city', 'code'], header=None).set_index('code').T
-    return metric
+    indice = list(data.index)
+    indice = [i.date() for i in indice]
+
+    city_name = get_city_names([city, 0])[0][1]
+    predicted, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back, hidden, epochs)
+
+    plot_predicted_vs_data(predicted,
+                           np.concatenate((Y_train, Y_test), axis=0),
+                           indice[:],
+                           label='Predictions for {}'.format(city_name),
+                           pred_window=predict_n,
+                           factor= factor,
+                           split_point=len(Y_train))
+
+    return None
 
 
-def cluster_prediction(state, predict_n, time_window, hidden, epochs):
-    codes = pd.read_excel('../../data/codigos_rj.xlsx', names=['city', 'code'], header=None).set_index('code').T
-
+def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden, epochs):
+    """
+    Fit an LSTM model to generate predictions for all cities from a cluster, Using its cluster as regressors.
+    :param city: geocode of the target city
+    :param state: State containing the city
+    :param predict_n: How many weeks ahead to predict
+    :param look_back: Look-back time window length used by the model
+    :param hidden: Number of hidden layers in each LSTM unit
+    :param epochs: Number of epochs of training
+    :return:
+    """
     with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
 
-    for i, cluster in enumerate(clusters[3:]):
-        # if i < 3: continue
-        data, cluster_n = get_cluster_data(cluster[0], clusters)
+    data, cluster = get_cluster_data(geocode=geocode, clusters=clusters,
+                                       data_types=data_types, cols=predictors)
+    if len(data) < 9:
+        fig, axs = P.subplots(nrows=math.ceil(len(data) / 3), ncols=3, figsize=(45, 45))
+    else:
+        fig, axs = P.subplots(nrows=math.ceil(len(data) / 4), ncols=4, figsize=(45, 45))
 
-        if len(cluster) < 9:
-            fig, axs = P.subplots(nrows=math.ceil(len(cluster) / 3), ncols=3, figsize=(45, 45))
-        else:
-            fig, axs = P.subplots(nrows=math.ceil(len(cluster) / 4), ncols=4, figsize=(45, 45))
+    indice = list(data.index)
+    indice = [i.date() for i in indice]
+    targets = zip(cluster, axs.flatten())
 
-        targets = zip(cluster, axs.flatten())
-        for (city, ax) in targets:
-            target_col = list(data.columns).index('casos_{}'.format(city))
-            norm_data, max_features = normalize_data(data)
-            # model
-            X_train, Y_train, X_test, Y_test = split_data(norm_data,
-                                                          look_back=time_window, ratio=.7,
-                                                          predict_n=predict_n, Y_column=target_col)
-            model = build_model(hidden, X_train.shape[2], time_window, 1)
-            history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
+    for (city, ax) in targets:
+        city_name = get_city_names([city, 0])[0][1]
+        predicted, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back, hidden, epochs)
 
-            # plot
-            predicted = model.predict(X_test, batch_size=1, verbose=1)
-            df_predicted = pd.DataFrame(predicted).T
-            factor = max_features[target_col]
-            for n in range(df_predicted.shape[1]):
-                ax.plot(range(n, n + predict_n), pd.DataFrame(Y_test.T)[n] * factor, 'k-')
-                ax.plot(range(n, n + predict_n), df_predicted[n] * factor, 'g:o', alpha=0.5)
-            ax.grid()
-            ax.set_title(codes[city])
-        P.savefig('cluster_{}.png'.format(i), dpi=400)
-        # P.show()
+        ## plot
+        Ydata = np.concatenate((Y_train, Y_test), axis=0)
+        split_point = len(Y_train)
+        df_predicted = pd.DataFrame(predicted).T
+        ymax = max(predicted.max() * factor, Ydata.max() * factor)
+
+        ax.vlines(indice[split_point], 0, ymax, 'k', lw=2)
+        ax.text(indice[split_point + 1], 0.6 * ymax, "Out of sample Predictions")
+        for n in range(df_predicted.shape[1] - predict_n):
+            ax.plot(indice[n: n + predict_n], pd.DataFrame(Ydata.T)[n] * factor, 'k-')
+            ax.plot(indice[n: n + predict_n], df_predicted[n] * factor, 'r-')
+            ax.vlines(indice[n: n + predict_n], np.zeros(predict_n), df_predicted[n] * factor, 'b', alpha=0.2)
+
+        ax.grid()
+        ax.set_title('Predictions for {}'.format(city_name))
+
+    P.xticks(rotation=70)
+    P.legend(['data', 'predicted'])
+    P.savefig('cluster_{}.png'.format(geocode), dpi=400)
+    P.show()
 
     return None
 
 
 if __name__ == "__main__":
-    single_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK,
-                      hidden=HIDDEN, epochs=epochs)
+    # single_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK,
+    #                   hidden=HIDDEN, epochs=epochs)
 
-    # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
+    cluster_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK, hidden=HIDDEN, epochs=epochs)
 
     ## Optimize Hyperparameters
     #
