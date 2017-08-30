@@ -70,3 +70,6 @@ def distance(cities_list, cols):
 
     return state_distances
 
+if __name__ == "__main__":
+    cities_list = get_cities_from_state(state)
+    distance(cities_list, cluster_vars)

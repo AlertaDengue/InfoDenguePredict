@@ -37,7 +37,7 @@ def create_cluster(state, cols, t):
     cities_list = alocate_data(state)
     dists = distance(cities_list, cols)
     Z, clusters = hierarchical_clustering(dists, t=t)
-
+    print(clusters)
     matrix_cluster(cities_list=cities_list, clusters=clusters)
 
     with open('clusters_{}.pkl'.format(state), 'wb') as fp:
