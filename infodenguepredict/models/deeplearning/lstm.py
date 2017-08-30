@@ -99,7 +99,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
                     bias_initializer='zeros'))
 
     start = time()
-    model.compile(loss="mse", optimizer="nadam", metrics=['accuracy', 'mape'])
+    model.compile(loss="poisson", optimizer="nadam", metrics=['accuracy', 'mape'])
     print("Compilation Time : ", time() - start)
     plot_model(model, to_file='LSTM_model.png')
     print(model.summary())
@@ -154,8 +154,8 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     P.clf()
     df_predicted = pd.DataFrame(predicted).T
     ymax = max(predicted.max() * factor, Ydata.max() * factor)
-    P.vlines(indice[split_point], 0, ymax, 'k', lw=2)
-    P.text(indice[split_point + 1], 0.6*ymax, "Out of sample Predictions")
+    P.stem(indice[split_point], 0, ymax, '.-g', lw=2)
+    P.text(indice[split_point + 2], 0.6*ymax, "Out of sample Predictions")
     for n in range(df_predicted.shape[1] - pred_window):
         P.plot(indice[n: n + pred_window], pd.DataFrame(Ydata.T)[n] * factor, 'k-')
         P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-')
