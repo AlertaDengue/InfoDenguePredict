@@ -102,7 +102,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     start = time()
     model.compile(loss="msle", optimizer="nadam", metrics=['accuracy', 'mape'])
     print("Compilation Time : ", time() - start)
-    plot_model(model, to_file='LSTM_model.png')
+    # plot_model(model, to_file='LSTM_model.png')
     print(model.summary())
     return model
 
@@ -201,7 +201,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, clust
     ## Run model
     model = build_model(hidden, X_train.shape[2], predict_n=predict_n, look_back=look_back)
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
-    plot_training_history(history)
+    # plot_training_history(history)
     # model.save('lstm_model')
 
     predicted_out, metrics_out = evaluate(city, model, X_test, Y_test, label='out_of_sample_{}'.format(city))
@@ -261,21 +261,19 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
     :param epochs: Number of epochs of training
     :return:
     """
-    with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
-        clusters = pickle.load(fp)
 
+    clusters = pd.read_pickle('../../analysis/clusters_{}.pkl'.format(state))
     data, cluster = get_cluster_data(geocode=geocode, clusters=clusters,
                                        data_types=data_types, cols=predictors)
-    if len(data) < 9:
-        fig, axs = P.subplots(nrows=math.ceil(len(data) / 3), ncols=3, figsize=(45, 45))
-    else:
-        fig, axs = P.subplots(nrows=math.ceil(len(data) / 4), ncols=4, figsize=(45, 45))
-
     indice = list(data.index)
     indice = [i.date() for i in indice]
-    targets = zip(cluster, axs.flatten())
 
+
+    fig, axs = P.subplots(nrows=2, ncols=2, figsize=(50, 45))
+
+    targets = zip(cluster, axs.flatten())
     for (city, ax) in targets:
+        print(city)
         city_name = get_city_names([city, 0])[0][1]
         predicted, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back, hidden, epochs)
 
@@ -285,7 +283,7 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
         df_predicted = pd.DataFrame(predicted).T
         ymax = max(predicted.max() * factor, Ydata.max() * factor)
 
-        ax.vlines(indice[split_point], 0, ymax, 'k', lw=2)
+        ax.vlines(indice[split_point], 0, ymax, 'g', 'dashdot', lw=2)
         ax.text(indice[split_point + 1], 0.6 * ymax, "Out of sample Predictions")
         for n in range(df_predicted.shape[1] - predict_n):
             ax.plot(indice[n: n + predict_n], pd.DataFrame(Ydata.T)[n] * factor, 'k-')
@@ -293,11 +291,11 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
             ax.vlines(indice[n: n + predict_n], np.zeros(predict_n), df_predicted[n] * factor, 'b', alpha=0.2)
 
         ax.grid()
-        ax.set_title('Predictions for {}'.format(city_name))
+        ax.set_title('Predictions for {}'.format(city_name), fontsize=13)
+        ax.legend(['data', 'predicted'])
 
-    P.xticks(rotation=70)
-    P.legend(['data', 'predicted'])
-    P.savefig('cluster_{}.png'.format(geocode), dpi=400)
+    P.tight_layout()
+    P.savefig('cluster_{}.png'.format(geocode), dpi=300)#, bbox_inches='tight')
     P.show()
 
     return None
@@ -305,8 +303,8 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
 
 if __name__ == "__main__":
     # K.set_epsilon(1e-5)
-    single_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK,
-                      hidden=HIDDEN, epochs=epochs)
+    # single_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK,
+    #                   hidden=HIDDEN, epochs=epochs)
 
     cluster_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK, hidden=HIDDEN, epochs=epochs)
 
