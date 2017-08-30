@@ -18,3 +18,4 @@ dask
 scipy
 distributed
 pycast
+apache-airflow

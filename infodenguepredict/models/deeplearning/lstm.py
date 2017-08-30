@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import pickle
 import math
-import re
 import string as str
 from matplotlib import pyplot as P
 from keras.layers.core import Dense, Activation, Dropout
@@ -10,6 +9,7 @@ from keras.layers.recurrent import LSTM
 from keras.models import Sequential
 from keras.utils.vis_utils import plot_model
 from keras.callbacks import TensorBoard
+from keras import backend as K
 from hyperas.distributions import uniform, choice
 from hyperas import optim
 from hyperopt import Trials, STATUS_OK, tpe
@@ -102,7 +102,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     start = time()
     model.compile(loss="msle", optimizer="nadam", metrics=['accuracy', 'mape'])
     print("Compilation Time : ", time() - start)
-    # plot_model(model, to_file='LSTM_model.png')
+    plot_model(model, to_file='LSTM_model.png')
     print(model.summary())
     return model
 
@@ -155,11 +155,11 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     P.clf()
     df_predicted = pd.DataFrame(predicted).T
     ymax = max(predicted.max() * factor, Ydata.max() * factor)
-    P.vlines(indice[split_point], 0, ymax, 'k', lw=2)
-    P.text(indice[split_point + 1], 0.6*ymax, "Out of sample Predictions")
+    P.vlines(indice[split_point], 0, ymax, 'g', 'dashdot', lw=2)
+    P.text(indice[split_point + 2], 0.6*ymax, "Out of sample Predictions")
     for n in range(df_predicted.shape[1] - pred_window):
         P.plot(indice[n: n + pred_window], pd.DataFrame(Ydata.T)[n] * factor, 'k-')
-        P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-')
+        P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-.')
         P.vlines(indice[n: n + pred_window], np.zeros(pred_window), df_predicted[n] * factor, 'b', alpha=0.2)
     P.grid()
     P.title(label)
@@ -304,8 +304,9 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
 
 
 if __name__ == "__main__":
-    # single_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK,
-    #                   hidden=HIDDEN, epochs=epochs)
+    # K.set_epsilon(1e-5)
+    single_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK,
+                      hidden=HIDDEN, epochs=epochs)
 
     cluster_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK, hidden=HIDDEN, epochs=epochs)
 
