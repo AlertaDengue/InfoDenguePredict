@@ -9,6 +9,7 @@ from keras.layers.recurrent import LSTM
 from keras.models import Sequential
 from keras.utils.vis_utils import plot_model
 from keras.callbacks import TensorBoard
+from keras import backend as K
 from hyperas.distributions import uniform, choice
 from hyperas import optim
 from hyperopt import Trials, STATUS_OK, tpe
@@ -44,7 +45,7 @@ def optimize_model(x_train, y_train, x_test, y_test, features):
     model.add(Dense(prediction_window, activation='relu'))
 
     start = time()
-    model.compile(loss="mse", optimizer="rmsprop", )
+    model.compile(loss="msle", optimizer="rmsprop", )
     model.fit(x_train, y_train,
               batch_size=1,
               nb_epoch=1,
@@ -99,7 +100,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
                     bias_initializer='zeros'))
 
     start = time()
-    model.compile(loss="poisson", optimizer="nadam", metrics=['accuracy', 'mape'])
+    model.compile(loss="msle", optimizer="nadam", metrics=['accuracy', 'mape'])
     print("Compilation Time : ", time() - start)
     plot_model(model, to_file='LSTM_model.png')
     print(model.summary())
@@ -154,11 +155,11 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     P.clf()
     df_predicted = pd.DataFrame(predicted).T
     ymax = max(predicted.max() * factor, Ydata.max() * factor)
-    P.stem(indice[split_point], 0, ymax, '.-g', lw=2)
+    P.vlines(indice[split_point], 0, ymax, 'g', 'dashdot', lw=2)
     P.text(indice[split_point + 2], 0.6*ymax, "Out of sample Predictions")
     for n in range(df_predicted.shape[1] - pred_window):
         P.plot(indice[n: n + pred_window], pd.DataFrame(Ydata.T)[n] * factor, 'k-')
-        P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-')
+        P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-.')
         P.vlines(indice[n: n + pred_window], np.zeros(pred_window), df_predicted[n] * factor, 'b', alpha=0.2)
     P.grid()
     P.title(label)
@@ -211,10 +212,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, plot, epochs,
         plot_training_history(history)
         predicted_in, metrics_in = evaluate(city, model, X_train, Y_train,
                                             label='in_sample_{}'.format(city))
-        # plot_predicted_vs_data(predicted_in, Y_train, indice[:len(Y_train)],
-        #                        label='In Sample {}'.format(city),
-        #                        pred_window=predict_n,
-        #                        factor=max_features[target_col])
+
         plot_predicted_vs_data(np.concatenate((predicted_in, predicted_out), axis=0),
                                np.concatenate((Y_train, Y_test), axis=0),
                                indice[:],
@@ -293,6 +291,7 @@ def cluster_prediction(state, predict_n, time_window, hidden, epochs):
 
 
 if __name__ == "__main__":
+    # K.set_epsilon(1e-5)
     single_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK,
                       hidden=HIDDEN, epochs=epochs)
 
