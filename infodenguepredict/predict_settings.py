@@ -4,9 +4,12 @@ Created on 28/08/17
 by fccoelho
 license: GPL V3 or Later
 """
-#======Global Model parameters=======
+#======Global importing data parameters=======
 state = 'ES'
 
+# Data_types: list of types of data to get into combined_data function
+# Possible types: 'alerta', 'weather', 'tweet'
+data_types = ['alerta', 'weather']
 
 #=======Clustering parameters========
 # Variables to include in the correlation distance
@@ -16,8 +19,10 @@ cluster_vars = [
 color_treshold = 0.6 # threshold for coloring the dendrogram
 tmp_path = '/tmp' #path to temporary files for clustering aux data
 
+
 #=======LSTM parameters==============
 
+# Predictors must change to fit data_types list
 predictors = [
     'casos',
     'p_rt1',

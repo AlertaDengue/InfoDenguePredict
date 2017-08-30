@@ -242,7 +242,8 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
     else:
         with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
             clusters = pickle.load(fp)
-        data, group = get_cluster_data(city, clusters, cols=predictors)
+        data, group = get_cluster_data(geocode=city, clusters=clusters,
+                                       data_types=data_types, cols=predictors)
 
     metric = train_evaluate_model(city, data, predict_n, look_back, hidden, plot=True, epochs=epochs)
     # codes = pd.read_excel('../../data/codigos_{}.xlsx'.format(state),
@@ -294,12 +295,8 @@ def cluster_prediction(state, predict_n, time_window, hidden, epochs):
 if __name__ == "__main__":
     single_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK,
                       hidden=HIDDEN, epochs=epochs)
-    # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
 
-    # city_data = combined_data(city)
-    # city_data = city_data[cols]
-    # train_evaluate_model(city, city_data, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN,
-    #                      plot=True, epochs=epochs, cluster=False)
+    # cluster_prediction(state, predict_n=prediction_window, time_window=TIME_WINDOW, hidden=HIDDEN, epochs=epochs)
 
     ## Optimize Hyperparameters
     #
