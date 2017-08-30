@@ -184,7 +184,20 @@ def evaluate(city, model, Xdata, Ydata, label):
     return predicted, metrics
 
 
-def train_evaluate_model(city, data, predict_n, look_back, hidden, plot, epochs, cluster=True):
+def train_evaluate_model(city, data, predict_n, look_back, hidden, plot, epochs, cluster=True, load=False):
+    """
+    Train the model
+    :param city:
+    :param data:
+    :param predict_n:
+    :param look_back:
+    :param hidden:
+    :param plot:
+    :param epochs:
+    :param cluster:
+    :param load: Whether to load a previously saved model
+    :return:
+    """
     if cluster:
         target_col = list(data.columns).index('casos_{}'.format(city))
     else:
@@ -202,6 +215,8 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, plot, epochs,
 
     ## Run model
     model = build_model(hidden, X_train.shape[2], predict_n=predict_n, look_back=look_back)
+    if load:
+        model.load_weights("trained_{}_model.h5".format(city))
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
     # model.save('lstm_model')
 
@@ -243,7 +258,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
         data, group = get_cluster_data(geocode=city, clusters=clusters,
                                        data_types=data_types, cols=predictors)
 
-    metric = train_evaluate_model(city, data, predict_n, look_back, hidden, plot=True, epochs=epochs)
+    metric = train_evaluate_model(city, data, predict_n, look_back, hidden, plot=True, epochs=epochs,load=False)
     # codes = pd.read_excel('../../data/codigos_{}.xlsx'.format(state),
     #                       names=['city', 'code'], header=None).set_index('code').T
     return metric
