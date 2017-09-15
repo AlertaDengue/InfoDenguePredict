@@ -25,6 +25,9 @@ tmp_path = '/tmp' #path to temporary files for clustering aux data
 # Predictors must change to fit data_types list
 PREDICTORS = [
     'casos',
+    'casos_est',
+    'casos_est_min',
+    'casos_est_max',
     'p_rt1',
     'p_inc100k',
     'temp_min',

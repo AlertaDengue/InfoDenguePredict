@@ -199,9 +199,9 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, clust
     :return:
     """
     if cluster:
-        target_col = list(data.columns).index('casos_{}'.format(city))
+        target_col = list(data.columns).index('casos_est_{}'.format(city))
     else:
-        target_col = list(data.columns).index('casos')
+        target_col = list(data.columns).index('casos_est')
     norm_data, max_features = normalize_data(data)
 
     ##split test and train

@@ -7,4 +7,6 @@ try:
 except:
     __version__ = 'unknown'
 
-models =
+models = {
+    'lstm': lstm
+}
