@@ -29,7 +29,7 @@ def matrix_cluster(cities_list, clusters):
     for pos, cluster in enumerate(clusters):
         df.loc[cluster] = pos
 
-    df.to_csv('list_cluster_{}.csv'.format(state))
+    df.to_csv('list_cluster_{}.csv'.format(STATE))
     return 'List of clusters csv saved'
 
 
@@ -53,7 +53,7 @@ def llf(id):
 
 
 if __name__ == "__main__":
-    Z, name_ind = create_cluster(state, cluster_vars, color_treshold)
+    Z, name_ind = create_cluster(STATE, CLUSTER_VARS, COLOR_THRESHOLD)
 
     plt.figure(figsize=(25, 10))
     # plt.title('Hierarchical Clustering Dendrogram')
@@ -65,8 +65,8 @@ if __name__ == "__main__":
         leaf_rotation=90.,  # rotates the x axis labels
         leaf_font_size=8.,  # font size for the x axis labels
         leaf_label_func=llf,
-        color_threshold=color_treshold * max(Z[:, 2])
+        color_threshold=COLOR_THRESHOLD * max(Z[:, 2])
     )
 
     plt.show()
-    plt.savefig('cluster{}_{}.png'.format(state, color_treshold), dpi=300, bbox_inches='tight')
+    plt.savefig('cluster{}_{}.png'.format(STATE, COLOR_THRESHOLD), dpi=300, bbox_inches='tight')

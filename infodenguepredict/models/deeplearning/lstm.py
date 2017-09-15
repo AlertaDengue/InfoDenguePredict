@@ -42,7 +42,7 @@ def optimize_model(x_train, y_train, x_test, y_test, features):
                    recurrent_dropout={{uniform(0, 1)}}
                    ))
 
-    model.add(Dense(prediction_window, activation='relu'))
+    model.add(Dense(PREDICTION_WINDOW, activation='relu'))
 
     start = time()
     model.compile(loss="msle", optimizer="rmsprop", )
@@ -245,7 +245,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
         with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
             clusters = pickle.load(fp)
         data, group = get_cluster_data(geocode=city, clusters=clusters,
-                                       data_types=data_types, cols=predictors)
+                                       data_types=DATA_TYPES, cols=predictors)
 
     indice = list(data.index)
     indice = [i.date() for i in indice]
@@ -278,7 +278,7 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
 
     clusters = pd.read_pickle('../../analysis/clusters_{}.pkl'.format(state))
     data, cluster = get_cluster_data(geocode=geocode, clusters=clusters,
-                                       data_types=data_types, cols=predictors)
+                                     data_types=DATA_TYPES, cols=predictors)
     indice = list(data.index)
     indice = [i.date() for i in indice]
 
@@ -309,7 +309,7 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
         ax.legend(['data', 'predicted'])
 
     P.tight_layout()
-    P.savefig('cluster_{}.png'.format(geocode), dpi=300)#, bbox_inches='tight')
+    P.savefig('cluster_{}.pdf'.format(geocode))#, bbox_inches='tight')
     P.show()
 
     return None
@@ -317,10 +317,10 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
 
 if __name__ == "__main__":
     # K.set_epsilon(1e-5)
-    # single_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK,
-    #                   hidden=HIDDEN, epochs=epochs)
+    single_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
+                      hidden=HIDDEN, epochs=EPOCHS)
 
-    cluster_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK, hidden=HIDDEN, epochs=epochs)
+    # cluster_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK, hidden=HIDDEN, epochs=epochs)
 
     ## Optimize Hyperparameters
     #

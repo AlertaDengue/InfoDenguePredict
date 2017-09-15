@@ -17,7 +17,7 @@ def alocate_data(state):
     bad_cities = []
     for city in cities_list:
         try:
-            full_city = combined_data(city, data_types=data_types)
+            full_city = combined_data(city, data_types=DATA_TYPES)
             full_city.to_pickle('{}/city_{}.pkl'.format(tmp_path, city))
         except TypeError as e:
             print("Skipping: ", city)
@@ -71,5 +71,5 @@ def distance(cities_list, cols):
     return state_distances
 
 if __name__ == "__main__":
-    cities_list = get_cities_from_state(state)
-    distance(cities_list, cluster_vars)
+    cities_list = get_cities_from_state(STATE)
+    distance(cities_list, CLUSTER_VARS)

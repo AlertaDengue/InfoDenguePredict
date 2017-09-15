@@ -5,25 +5,25 @@ by fccoelho
 license: GPL V3 or Later
 """
 #======Global importing data parameters=======
-state = 'RJ'
+STATE = 'RJ'
 
 # Data_types: list of types of data to get into combined_data function
 # Possible types: 'alerta', 'weather', 'tweet'
-data_types = ['alerta', 'weather']
+DATA_TYPES = ['alerta', 'weather']
 
 #=======Clustering parameters========
 # Variables to include in the correlation distance
-cluster_vars = [
+CLUSTER_VARS = [
     "casos"
 ]
-color_treshold = 0.6 # threshold for coloring the dendrogram
+COLOR_THRESHOLD = 0.6 # threshold for coloring the dendrogram
 tmp_path = '/tmp' #path to temporary files for clustering aux data
 
 
 #=======LSTM parameters==============
 
 # Predictors must change to fit data_types list
-predictors = [
+PREDICTORS = [
     'casos',
     'p_rt1',
     'p_inc100k',
@@ -37,12 +37,15 @@ predictors = [
 HIDDEN = 4
 LOOK_BACK = 4
 BATCH_SIZE = 1
-prediction_window = 3  # weeks
+PREDICTION_WINDOW = 3  # weeks
 # city = 3304557 # Rio de Janeiro
 # city = 3303500 # Nova Iguaçu
 # city = 3301009 # Campos dos Goytacazes
-city = 3304904 # Sao Gonçalo
+# city = 3304904 # Sao Gonçalo
 # city = 3303906 # Petropolis
+# city = 3302858 # Mesquita
+# city = 3303203 # Nilopolis
+CITY = 3304144 # Queimados
 # city = 3205309 # Vitoria
 # city = 3205200 # Vila Velha, ES
-epochs = 100
+EPOCHS = 100
