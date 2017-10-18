@@ -18,7 +18,7 @@ def alocate_data(state):
     for city in cities_list:
         try:
             full_city = combined_data(city, data_types=DATA_TYPES)
-            full_city.to_pickle('{}/city_{}.pkl'.format(tmp_path, city))
+            full_city.to_pickle('{}/city_{}.pkl'.format(TMP_PATH, city))
         except TypeError as e:
             print("Skipping: ", city)
             bad_cities.append(city)
@@ -58,11 +58,11 @@ def distance(cities_list, cols):
 
     for pos, city_1 in enumerate(cities_list):
         print("Calculating distance Matrix for ", city_1)
-        full_city_1 = pd.read_pickle('{}/city_{}.pkl'.format(tmp_path, city_1))[cols]
+        full_city_1 = pd.read_pickle('{}/city_{}.pkl'.format(TMP_PATH, city_1))[cols]
         new_col = list(np.zeros(pos + 1))
 
         for city_2 in cities_list[pos + 1:]:
-            full_city_2 = pd.read_pickle('{}/city_{}.pkl'.format(tmp_path, city_2))[cols]
+            full_city_2 = pd.read_pickle('{}/city_{}.pkl'.format(TMP_PATH, city_2))[cols]
 
             dist = correlation(full_city_1, full_city_2)
             new_col.append(dist)

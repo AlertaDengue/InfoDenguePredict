@@ -16,8 +16,9 @@ DATA_TYPES = ['alerta', 'weather']
 CLUSTER_VARS = [
     "casos"
 ]
+
 COLOR_THRESHOLD = 0.6 # threshold for coloring the dendrogram
-tmp_path = '/tmp' #path to temporary files for clustering aux data
+TMP_PATH = '/tmp' #path to temporary files for clustering aux data
 
 
 #=======LSTM parameters==============
