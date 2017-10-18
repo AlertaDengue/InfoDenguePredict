@@ -48,6 +48,7 @@ def get_alerta_table(municipio=None, state=None):
             conexao, index_col='id')
     df.data_iniSE = pd.to_datetime(df.data_iniSE)
     df.set_index('data_iniSE', inplace=True)
+    conexao.dispose()
     return df
 
 
@@ -71,6 +72,7 @@ def get_temperature_data(municipio=None):
                 municipio), conexao, index_col='id')
     df.data_dia = pd.to_datetime(df.data_dia)
     df.set_index('data_dia', inplace=True)
+    conexao.dispose()
     return df
 
 
@@ -94,6 +96,7 @@ def get_tweet_data(municipio=None) -> pd.DataFrame:
         del df['Municipio_geocodigo']
     df.data_dia = pd.to_datetime(df.data_dia)
     df.set_index('data_dia', inplace=True)
+    conexao.dispose()
     return df
 
 
@@ -115,6 +118,7 @@ def get_rain_data(geocode, sensor="chuva"):
     df = pd.read_sql_query(sql, conexao, index_col='id')
     df.datahora = pd.to_datetime(df.datahora)
     df.set_index('datahora', inplace=True)
+    conexao.dispose()
     return df
 
 
