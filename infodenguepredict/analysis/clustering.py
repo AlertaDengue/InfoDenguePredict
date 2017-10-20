@@ -68,5 +68,5 @@ if __name__ == "__main__":
         color_threshold=COLOR_THRESHOLD * max(Z[:, 2])
     )
 
-    plt.show()
-    plt.savefig('cluster{}_{}.png'.format(STATE, COLOR_THRESHOLD), dpi=300, bbox_inches='tight')
+    # plt.show()
+    plt.savefig('{}/cluster{}_{}.png'.format(TMP_PATH, STATE, COLOR_THRESHOLD), dpi=300, bbox_inches='tight')
