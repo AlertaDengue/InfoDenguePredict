@@ -35,7 +35,7 @@ def split_data(df, look_back=12, ratio=0.8, predict_n=5, Y_column=0):
     return X_train, Y_train, X_test, Y_test
 
 
-def normalize_data(df):
+def normalize_data(df, log_transform=False):
     """
     Normalize features in the example table
     :param df:
@@ -52,6 +52,8 @@ def normalize_data(df):
             df[col] = le.transform(df[col])
 
     norm = normalize(df, norm='max', axis=0)
+    if log_transform==True:
+        norm = np.log(norm)
     df_norm = pd.DataFrame(norm, columns=df.columns)
 
     return df_norm, df.max(axis=0)
