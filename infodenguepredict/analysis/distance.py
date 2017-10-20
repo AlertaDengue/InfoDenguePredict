@@ -46,6 +46,14 @@ def cross_correlation(df_1, df_2, max_lag=5):
         corr_list.append(corr)
     return np.nanmean(corr_list)
 
+def fix_distance_matrix(dists):
+    to_drop=[]
+    for pos, col in enumerate(dists.columns):
+        if len(dists[col].dropna())==pos+1:
+            to_drop.append(col)
+    dists.drop(to_drop, axis=1, inplace=True)
+    dists.drop(to_drop, axis=0, inplace=True)
+    return dists
 
 def distance(cities_list, cols):
     """
@@ -68,6 +76,7 @@ def distance(cities_list, cols):
             new_col.append(dist)
         state_distances[city_1] = new_col
 
+    state_distances = fix_distance_matrix(state_distances)
     return state_distances
 
 if __name__ == "__main__":
