@@ -1,4 +1,5 @@
 # Temporary and binary files
+*.pkl
 *~
 *.py[cod]
 *.so

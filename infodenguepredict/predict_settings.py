@@ -5,7 +5,7 @@ by fccoelho
 license: GPL V3 or Later
 """
 #======Global importing data parameters=======
-STATE = 'RJ'
+STATE = 'PR'
 
 # Data_types: list of types of data to get into combined_data function
 # Possible types: 'alerta', 'weather', 'tweet'
@@ -41,15 +41,16 @@ PREDICTORS = [
 HIDDEN = 4
 LOOK_BACK = 4
 BATCH_SIZE = 1
-PREDICTION_WINDOW = 10  # weeks
+PREDICTION_WINDOW = 5  # weeks
 # city = 3304557 # Rio de Janeiro
 # city = 3303500 # Nova Iguaçu
 # city = 3301009 # Campos dos Goytacazes
-CITY = 3304904 # Sao Gonçalo
+# CITY = 3304904 # Sao Gonçalo
 # city = 3303906 # Petropolis
 # city = 3302858 # Mesquita
 # city = 3303203 # Nilopolis
 # CITY = 3304144 # Queimados
 # city = 3205309 # Vitoria
 # city = 3205200 # Vila Velha, ES
+CITY = 4113700 # Londrina, PR
 EPOCHS = 100

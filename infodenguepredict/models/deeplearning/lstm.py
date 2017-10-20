@@ -242,7 +242,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
     if random == True:
         data, group = random_data(10, state, city)
     else:
-        with open('../clusters_{}.pkl'.format(state), 'rb') as fp:
+        with open('../../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
             clusters = pickle.load(fp)
         data, group = get_cluster_data(geocode=city, clusters=clusters,
                                        data_types=DATA_TYPES, cols=predictors)
