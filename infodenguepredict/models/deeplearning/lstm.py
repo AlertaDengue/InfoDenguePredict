@@ -138,7 +138,7 @@ def plot_training_history(hist):
     ax = df_vloss.plot(logy=True);
     df_loss.plot(ax=ax, grid=True, logy=True);
     # df_mape.plot(ax=ax, grid=True, logy=True);
-    P.savefig("LSTM_training_history.png")
+    P.savefig("{}/LSTM_training_history.png".format(FIG_PATH))
 
 
 def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor, split_point=None):
@@ -167,8 +167,8 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     P.ylabel('incidence')
     P.xticks(rotation=70)
     P.legend(['data', 'predicted'])
-    P.savefig("lstm_{}.png".format(label), bbox_inches='tight', dpi=300)
-    P.show()
+    P.savefig("{}/lstm_{}.png".format(FIG_PATH, label), bbox_inches='tight', dpi=300)
+    # P.show()
 
 
 def loss_and_metrics(model, Xtest, Ytest):
@@ -309,7 +309,7 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
         ax.legend(['data', 'predicted'])
 
     P.tight_layout()
-    P.savefig('cluster_{}.pdf'.format(geocode))#, bbox_inches='tight')
+    P.savefig('{}/cluster_{}.pdf'.format(FIG_PATH, geocode))#, bbox_inches='tight')
     P.show()
 
     return None
