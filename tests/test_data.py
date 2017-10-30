@@ -41,6 +41,17 @@ class TestInfodengue(unittest.TestCase):
         names = get_city_names([3304557, 4118204])
         self.assertEqual([(3304557,'Rio de Janeiro'), (4118204,'Paranaguá')], names)
 
+    def test_alerta_state(self):
+        df = get_alerta_table(state='RJ')
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertGreater(df.size, 0)
+        assert (df.municipio_geocodigo.values > 3300000).all()
+        assert (df.municipio_geocodigo.values < 4000000).all()
+
+    def test_multi_city_dataset(self):
+        df = build_multicity_dataset('RJ')
+        self.assertGreater(len(df.columns), 500)
+
 class TestSatellite(unittest.TestCase):
     def test_get_5d_image(self):
         fetcher = LandSurfaceTemperature()
@@ -49,16 +60,7 @@ class TestSatellite(unittest.TestCase):
         self.assertGreater(len(files), 0)
         os.system("rm *.tiff*")
 
-    def test_alerta_state(self):
-        df = get_alerta_table(state='RJ')
-        self.assertIsInstance(df, pd.DataFrame)
-        self.assertGreater(df.size, 0)
-        assert (df.municipio_geocodigo.values>3300000).all()
-        assert (df.municipio_geocodigo.values < 4000000).all()
 
-    def test_multi_city_dataset(self):
-        df = build_multicity_dataset('RJ')
-        self.assertGreater(len(df.columns), 500)
 
 
 if __name__ == '__main__':

@@ -23,23 +23,28 @@ def get_alerta_table(municipio=None, state=None):
     Pulls the data from a single city, cities from a state or all cities from the InfoDengue
     database
     :param municipio: geocode (one city) or None (all)
+    :param state: full name of state, with first letter capitalized: "Cear
     :return: Pandas dataframe
     """
+    estados = {'RJ': 'Rio de Janeiro', 'ES': 'Espírito Santo', 'PR': 'Paraná'}
+    if state in estados:
+        state = estados[state]
     conexao = create_engine("postgresql://{}:{}@{}/{}".format(config('PSQL_USER'),
                                                               config('PSQL_PASSWORD'),
                                                               config('PSQL_HOST'),
                                                               config('PSQL_DB')))
     if municipio is None:
-        if state == 'RJ':
-            sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>3300000 and municipio_geocodigo<4000000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        elif state == 'ES':
-            sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>3200000 and municipio_geocodigo<3300000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        elif state == 'PR':
-            sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>4000000 and municipio_geocodigo<5000000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        elif state is None:
-            sql = 'select * from "Municipio"."Historico_alerta" ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        else:
-            raise NameError("{} is not a valid state identifier".format(state))
+        sql = 'select h.* from "Municipio"."Historico_alerta" h JOIN "Dengue_global"."Municipio" m ON h.municipio_geocodigo=m.geocodigo where m.uf=\'{}\';'.format(state)
+        # if state == 'RJ':
+        #     sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>3300000 and municipio_geocodigo<4000000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
+        # elif state == 'ES':
+        #     sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>3200000 and municipio_geocodigo<3300000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
+        # elif state == 'PR':
+        #     sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>4000000 and municipio_geocodigo<5000000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
+        # elif state is None:
+        #     sql = 'select * from "Municipio"."Historico_alerta" ORDER BY "data_iniSE", municipio_geocodigo ASC;'
+        # else:
+        #     raise NameError("{} is not a valid state identifier".format(state))
         df = pd.read_sql_query(sql, conexao, index_col='id')
     else:
         df = pd.read_sql_query(
@@ -155,7 +160,7 @@ def build_multicity_dataset(state, cols=None) -> pd.DataFrame:
 
 def combined_data(municipio, data_types):
     """
-    Returns combined dataframe with incidence, tweets, and temperature
+    Returns combined dataframe with incidence, tweets, and temperature for a city
     :param municipio: geocode
     :param data_types: types of data to concatenate ->[alerta, tweet, weather])
     :return: Dataframe

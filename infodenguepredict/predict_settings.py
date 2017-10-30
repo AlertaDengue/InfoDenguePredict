@@ -53,4 +53,4 @@ PREDICTION_WINDOW = 5  # weeks
 # city = 3205309 # Vitoria
 # city = 3205200 # Vila Velha, ES
 CITY = 4113700 # Londrina, PR
-EPOCHS = 100
+EPOCHS = 50
