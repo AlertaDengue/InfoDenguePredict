@@ -227,7 +227,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, clust
     return predicted, Y_test, Y_train, factor
 
 
-def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, random=False):
+def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs):
     """
     Fit an LSTM model to generate predictions for a city, Using its cluster as regressors.
     :param city: geocode of the target city
@@ -239,13 +239,11 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
     :param random: If the model should be trained on a random selection of ten cities of the same state.
     :return:
     """
-    if random == True:
-        data, group = random_data(10, state, city)
-    else:
-        with open('../../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
-            clusters = pickle.load(fp)
-        data, group = get_cluster_data(geocode=city, clusters=clusters,
-                                       data_types=DATA_TYPES, cols=predictors)
+
+    with open('../../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
+        clusters = pickle.load(fp)
+    data, group = get_cluster_data(geocode=city, clusters=clusters,
+                                   data_types=DATA_TYPES, cols=predictors)
 
     indice = list(data.index)
     indice = [i.date() for i in indice]
@@ -261,7 +259,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
                            factor= factor,
                            split_point=len(Y_train))
 
-    return None
+    return predicted
 
 
 def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden, epochs):
