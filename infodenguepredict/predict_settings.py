@@ -5,7 +5,7 @@ by fccoelho
 license: GPL V3 or Later
 """
 #======Global importing data parameters=======
-STATE = 'PR'
+STATE = 'RJ'
 
 # Data_types: list of types of data to get into combined_data function
 # Possible types: 'alerta', 'weather', 'tweet'
