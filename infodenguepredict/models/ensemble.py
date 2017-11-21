@@ -1,29 +1,95 @@
 """
+Use Tpot regressor to test varius models on the problem
 Ensemble model
 """
-import pyflux as pf
-from infodenguepredict.models import GAS, arima, sarimax
-from infodenguepredict.data.infodengue import get_alerta_table
 
-data = get_alerta_table(3304557)
+from tpot import TPOTRegressor
+import pickle
+from infodenguepredict.data.infodengue import get_cluster_data
+from infodenguepredict.predict_settings import PREDICTORS, DATA_TYPES, STATE
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+import pandas as pd
 
-model1 = arima.build_model(data, 2, 2, 1, 'casos')
-model2 = GAS.build_model(data, ar=2, sc=6, target='casos')
-model3 = sarimax.build_model(data, 'casos', [])
 
-mix = pf.Aggregate(learning_rate=1.0, loss_type='squared')
-mix.add_model(model1)
-mix.add_model(model2)
-# mix.add_model(model3)
+def build_lagged_features(dt, lag=2, dropna=True):
+    '''
+    Builds a new DataFrame to facilitate regressing over all possible lagged features
+    :param dt: Dataframe containing features
+    :param lag: maximum lags to compute
+    :param dropna: if true the initial rows containing NANs due to lagging will be dropped
+    :return: Dataframe
+    '''
+    if type(dt) is pd.DataFrame:
+        new_dict = {}
+        for col_name in dt:
+            new_dict[col_name] = dt[col_name]
+            # create lagged Series
+            for l in range(1, lag + 1):
+                new_dict['%s_lag%d' % (col_name, l)] = dt[col_name].shift(l)
+        res = pd.DataFrame(new_dict, index=dt.index)
 
-mix.tune_learning_rate(52)
-print(mix.learning_rate)
-mix.plot_weights(h=52, figsize=(15, 5))
+    elif type(dt) is pd.Series:
+        the_range = range(lag + 1)
+        res = pd.concat([dt.shift(i) for i in the_range], axis=1)
+        res.columns = ['lag_%d' % i for i in the_range]
+    else:
+        print('Only works for DataFrame or Series')
+        return None
+    if dropna:
+        return res.dropna()
+    else:
+        return res
 
-print(mix.summary(h=52))
 
-# Previsoes
+def rolling_forecasts(data, window=12, horizon=1, target=None):
+    """
+    Fits the rolling forecast model
+    :param data: feature Dataframe
+    :param window: lookback window
+    :param horizon: forecast horizon
+    :param target: variable to be forecasted
+    :return:
+    """
 
-print(mix.predict_is(h=6))
 
-print(mix.predict(h=6))
+
+    tpm = TPOTRegressor(generations=5, population_size=20, verbosity=2, n_jobs=-1, memory='.')
+    tpm.fit(ldf.values, ldf[target].values)
+    # for i in range(0, ldf.shape[0] - window):
+    #     tpm.fit(ldf.values[i:i + window, :], ldf[target].values[i:i+window])
+    return tpm
+
+
+def plot_prediction(Xdata, ydata, model, title):
+    preds = model.predict(Xdata)
+    plt.plot(ydata, alpha=0.3, label='Data')
+    plt.plot(preds, ':', label='TPOT')
+    plt.legend(loc=0)
+    plt.title(title)
+    plt.savefig('tpot_{}_{}.png'.format(city, title))
+    plt.show()
+
+
+if __name__ == "__main__":
+    lookback = 12
+    horizon = 2  # weeks
+    city = 3304557
+    target = 'casos_{}'.format(city)
+    with open('../analysis/clusters_{}.pkl'.format(STATE), 'rb') as fp:
+        clusters = pickle.load(fp)
+    data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
+    X_train, X_test, y_train, y_test = train_test_split(data, data[target],
+                                                        train_size=0.75, test_size=0.25)
+    lX_train = build_lagged_features(X_train, lookback)
+    lX_train['target'] = X_train[target].shift(-horizon)
+    lX_test = build_lagged_features(X_test, lookback)
+    lX_test['target'] = X_test[target].shift(-horizon)
+
+    model = rolling_forecasts(X_train, target='casos_{}'.format(city), horizon=2)
+    plot_prediction(lX_train.values, lX_train['target'].values, model, 'In sample')
+    plot_prediction(lX_test.values, lX_test['target'].values, model, 'Out of sample')
+    print(model.score(X_test, y_test))
+    model.export('tpot_{}_pipeline.py'.format(city))
+
+    print(model.feature_importances_)
