@@ -1,15 +1,24 @@
-"""
-Use Tpot regressor to test varius models on the problem
-Ensemble model
-"""
-
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
+from sklearn.model_selection import train_test_split
 from tpot import TPOTRegressor
 import pickle
+from datetime import datetime
+import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_cluster_data
 from infodenguepredict.predict_settings import PREDICTORS, DATA_TYPES, STATE
-from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt
-import pandas as pd
+
+
+def build_model(**kwargs):
+    model = RandomForestRegressor(max_depth=None, random_state=0, n_jobs=-1,
+                                  n_estimators=1000,
+                                  warm_start=True)
+    # model = ExtraTreesRegressor(max_depth=None, random_state=0, n_jobs=-1,
+    #                               n_estimators=1000,
+    #                               warm_start=True)
+
+    return model
 
 
 def build_lagged_features(dt, lag=2, dropna=True):
@@ -51,45 +60,52 @@ def rolling_forecasts(data, window=12, horizon=1, target=None):
     :param target: variable to be forecasted
     :return:
     """
+    model = build_model()
 
-
-
-    tpm = TPOTRegressor(generations=5, population_size=20, verbosity=2, n_jobs=-1, memory='.')
-    tpm.fit(ldf.values, ldf[target].values)
+    model.fit(data.values, data['target'].values)
     # for i in range(0, ldf.shape[0] - window):
-    #     tpm.fit(ldf.values[i:i + window, :], ldf[target].values[i:i+window])
-    return tpm
+    #     model.fit(ldf.values[i:i + window, :], ldf['target'].values[i:i + window])
+
+    return model
 
 
 def plot_prediction(Xdata, ydata, model, title):
+    plt.figure()
     preds = model.predict(Xdata)
     plt.plot(ydata, alpha=0.3, label='Data')
-    plt.plot(preds, ':', label='TPOT')
+    plt.plot(preds, ':', label='RF')
     plt.legend(loc=0)
     plt.title(title)
-    plt.savefig('tpot_{}_{}.png'.format(city, title))
-    plt.show()
+    plt.savefig('RandomForest{}_{}.png'.format(city, title))
+
 
 
 if __name__ == "__main__":
     lookback = 12
-    horizon = 2  # weeks
+    horizon = 5  # weeks
     city = 3304557
     target = 'casos_{}'.format(city)
     with open('../analysis/clusters_{}.pkl'.format(STATE), 'rb') as fp:
         clusters = pickle.load(fp)
     data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
+
     X_train, X_test, y_train, y_test = train_test_split(data, data[target],
                                                         train_size=0.75, test_size=0.25)
     lX_train = build_lagged_features(X_train, lookback)
     lX_train['target'] = X_train[target].shift(-horizon)
+    lX_train.dropna(inplace=True)
     lX_test = build_lagged_features(X_test, lookback)
     lX_test['target'] = X_test[target].shift(-horizon)
+    lX_test.dropna(inplace=True)
+    lX_train.target.plot()
+    lX_test.target.plot()
+    plt.show()
 
-    model = rolling_forecasts(X_train, target='casos_{}'.format(city), horizon=2)
+
+    model = rolling_forecasts(lX_train, target='target', horizon=2)
     plot_prediction(lX_train.values, lX_train['target'].values, model, 'In sample')
     plot_prediction(lX_test.values, lX_test['target'].values, model, 'Out of sample')
-    print(model.score(X_test, y_test))
-    model.export('tpot_{}_pipeline.py'.format(city))
+    print(model.score(lX_test, lX_test['target']))
 
     print(model.feature_importances_)
+    plt.show()
