@@ -35,7 +35,7 @@ def build_lagged_features(dt, lag=2, dropna=True):
             new_dict[col_name] = dt[col_name]
             # create lagged Series
             for l in range(1, lag + 1):
-                new_dict['%s_lag%d' % (col_name, l)] = dt[col_name].shift(-l)
+                new_dict['%s_lag%d' % (col_name, l)] = dt[col_name].shift(l)
         res = pd.DataFrame(new_dict, index=dt.index)
 
     elif type(dt) is pd.Series:
@@ -91,10 +91,10 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = train_test_split(data, data[target],
                                                         train_size=0.75, test_size=0.25, shuffle=False)
     lX_train = build_lagged_features(X_train, lookback)
-    lX_train['target'] = X_train[target].shift(horizon)
+    lX_train['target'] = X_train[target].shift(-horizon)
     lX_train.dropna(inplace=True)
     lX_test = build_lagged_features(X_test, lookback)
-    lX_test['target'] = X_test[target].shift(horizon)
+    lX_test['target'] = X_test[target].shift(-horizon)
     lX_test.dropna(inplace=True)
     lX_train[target].plot()
     lX_train.target.plot()
