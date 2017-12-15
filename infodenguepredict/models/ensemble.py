@@ -42,7 +42,7 @@ def build_lagged_features(dt, lag=2, dropna=True):
         return res
 
 
-def rolling_forecasts(data, target, window=12, horizon=1):
+def rolling_forecasts(data, target):
     """
     Fits the rolling forecast model
     :param data: feature Dataframe
@@ -51,7 +51,7 @@ def rolling_forecasts(data, target, window=12, horizon=1):
     :param target: variable to be forecasted
     :return:
     """
-    model = TPOTRegressor()
+    model = TPOTRegressor(generations=5, population_size=50, verbosity=2)
     model.fit(data.values, target)
     # for i in range(0, ldf.shape[0] - window):
     #     model.fit(ldf.values[i:i + window, :], ldf['target'].values[i:i + window])
@@ -72,7 +72,7 @@ def plot_prediction(Xdata, ydata, model, title):
 
 if __name__ == "__main__":
     lookback = 12
-    horizon = 2  # weeks
+    horizon = 5  # weeks
     city = 3304557
     target = 'casos_{}'.format(city)
     with open('../analysis/clusters_{}.pkl'.format(STATE), 'rb') as fp:
@@ -101,4 +101,4 @@ if __name__ == "__main__":
     print(model.score(lX_test, tgtt))
     model.export('tpot_{}_pipeline.py'.format(city))
 
-    print(model.feature_importances_)
+    plt.show()
