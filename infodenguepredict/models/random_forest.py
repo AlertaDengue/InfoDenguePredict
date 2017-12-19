@@ -40,7 +40,7 @@ def build_lagged_features(dt, lag=2, dropna=True):
 
     elif type(dt) is pd.Series:
         the_range = range(lag + 1)
-        res = pd.concat([dt.shift(i) for i in the_range], axis=1)
+        res = pd.concat([dt.shift(-i) for i in the_range], axis=1)
         res.columns = ['lag_%d' % i for i in the_range]
     else:
         print('Only works for DataFrame or Series')
@@ -51,7 +51,7 @@ def build_lagged_features(dt, lag=2, dropna=True):
         return res
 
 
-def rolling_forecasts(data, window=12, horizon=1, target=None):
+def rolling_forecasts(data, target, window=12, horizon=1):
     """
     Fits the rolling forecast model
     :param data: feature Dataframe
@@ -61,8 +61,7 @@ def rolling_forecasts(data, window=12, horizon=1, target=None):
     :return:
     """
     model = build_model()
-
-    model.fit(data.values, data['target'].values)
+    model.fit(data.values, target)
     # for i in range(0, ldf.shape[0] - window):
     #     model.fit(ldf.values[i:i + window, :], ldf['target'].values[i:i + window])
 
@@ -73,7 +72,7 @@ def plot_prediction(Xdata, ydata, model, title):
     plt.figure()
     preds = model.predict(Xdata)
     plt.plot(ydata, alpha=0.3, label='Data')
-    plt.plot(preds, ':', label='RF')
+    plt.plot(preds, ':', label='RandomForest')
     plt.legend(loc=0)
     plt.title(title)
     plt.savefig('RandomForest{}_{}.png'.format(city, title))
@@ -90,22 +89,25 @@ if __name__ == "__main__":
     data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
 
     X_train, X_test, y_train, y_test = train_test_split(data, data[target],
-                                                        train_size=0.75, test_size=0.25)
+                                                        train_size=0.75, test_size=0.25, shuffle=False)
     lX_train = build_lagged_features(X_train, lookback)
     lX_train['target'] = X_train[target].shift(-horizon)
     lX_train.dropna(inplace=True)
     lX_test = build_lagged_features(X_test, lookback)
     lX_test['target'] = X_test[target].shift(-horizon)
     lX_test.dropna(inplace=True)
+    lX_train[target].plot()
     lX_train.target.plot()
-    lX_test.target.plot()
+    plt.legend(loc=0)
     plt.show()
 
+    tgt = lX_train.pop('target')
+    tgtt = lX_test.pop('target')
+    model = rolling_forecasts(lX_train, target=tgt, horizon=horizon)
 
-    model = rolling_forecasts(lX_train, target='target', horizon=2)
-    plot_prediction(lX_train.values, lX_train['target'].values, model, 'In sample')
-    plot_prediction(lX_test.values, lX_test['target'].values, model, 'Out of sample')
-    print(model.score(lX_test, lX_test['target']))
+    plot_prediction(lX_train.values, tgt.values, model, 'In sample')
+    plot_prediction(lX_test.values, tgtt.values, model, 'Out of sample')
+    print(model.score(lX_test, tgtt))
 
     print(model.feature_importances_)
     plt.show()
