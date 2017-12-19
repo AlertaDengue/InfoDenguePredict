@@ -88,26 +88,48 @@ if __name__ == "__main__":
         clusters = pickle.load(fp)
     data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
 
-    X_train, X_test, y_train, y_test = train_test_split(data, data[target],
+    data_lag = build_lagged_features(data, lookback)
+    data_lag.dropna()
+    targets = {}
+    for d in range(1, horizon + 1):
+        targets[d] = data_lag[target].shift(-d)[:-horizon]
+
+    X_train, X_test, y_train, y_test = train_test_split(data_lag, data_lag[target],
                                                         train_size=0.75, test_size=0.25, shuffle=False)
-    lX_train = build_lagged_features(X_train, lookback)
-    lX_train['target'] = X_train[target].shift(-horizon)
-    lX_train.dropna(inplace=True)
-    lX_test = build_lagged_features(X_test, lookback)
-    lX_test['target'] = X_test[target].shift(-horizon)
-    lX_test.dropna(inplace=True)
-    lX_train[target].plot()
-    lX_train.target.plot()
+    X_test = X_test.iloc[:-horizon]
+
+    X_train[target].plot()
+    targets[2].plot(label='target')
     plt.legend(loc=0)
     plt.show()
 
-    tgt = lX_train.pop('target')
-    tgtt = lX_test.pop('target')
-    model = rolling_forecasts(lX_train, target=tgt, horizon=horizon)
+    # X_train, X_test, y_train, y_test = train_test_split(data, data[target],
+    #                                                     train_size=0.75, test_size=0.25, shuffle=False)
+    # lX_train = build_lagged_features(X_train, lookback)
+    # lX_train['target'] = X_train[target].shift(-horizon)
+    # lX_train.dropna(inplace=True)
+    # lX_test = build_lagged_features(X_test, lookback)
+    # lX_test['target'] = X_test[target].shift(-horizon)
+    # lX_test.dropna(inplace=True)
+    # lX_train[target].plot()
+    # lX_train.target.plot()
+    # plt.legend(loc=0)
+    # plt.show()
 
-    plot_prediction(lX_train.values, tgt.values, model, 'In sample')
-    plot_prediction(lX_test.values, tgtt.values, model, 'Out of sample')
-    print(model.score(lX_test, tgtt))
+    for d in range(1, horizon + 1):
+        tgt = targets[d][:len(X_train)]
+        tgtt = targets[d][len(X_train):]
+        model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
 
-    print(model.feature_importances_)
-    plt.show()
+        plot_prediction(X_test.values, tgtt.values, model, 'Out_of_Sample_{}'.format(d))
+        plt.show()
+    # tgt = lX_train.pop('target')
+    # tgtt = lX_test.pop('target')
+    # model = rolling_forecasts(lX_train, target=tgt, horizon=horizon)
+
+    # plot_prediction(lX_train.values, tgt.values, model, 'In sample')
+    # plot_prediction(lX_test.values, tgtt.values, model, 'Out of sample')
+    # print(model.score(lX_test, tgtt))
+    #
+    # print(model.feature_importances_)
+    # plt.show()
