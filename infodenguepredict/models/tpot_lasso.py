@@ -50,42 +50,43 @@ def plot_prediction(Xdata, ydata, model, title):
 
 # NOTE: Make sure that the class is labeled 'target' in the data file
 
-lookback = 12
-horizon = 10  # weeks
-city = 3303302
-target = 'casos_{}'.format(city)
-with open('infodenguepredict/analysis/clusters_{}.pkl'.format(STATE), 'rb') as fp:
-    clusters = pickle.load(fp)
-data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
+if __name__=="__main__":
+    lookback = 12
+    horizon = 10  # weeks
+    city = 3303302
+    target = 'casos_{}'.format(city)
+    with open('infodenguepredict/analysis/clusters_{}.pkl'.format(STATE), 'rb') as fp:
+        clusters = pickle.load(fp)
+    data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
 
-data_lag = build_lagged_features(data, lookback)
-data_lag.dropna()
-targets = {}
-for d in range(1, horizon+1):
-    targets[d] = data_lag[target].shift(-d)[:-horizon]
+    data_lag = build_lagged_features(data, lookback)
+    data_lag.dropna()
+    targets = {}
+    for d in range(1, horizon+1):
+        targets[d] = data_lag[target].shift(-d)[:-horizon]
 
-X_train, X_test, y_train, y_test = train_test_split(data_lag, data_lag[target],
-                                                    train_size=0.75, test_size=0.25, shuffle=False)
-X_test = X_test.iloc[:-horizon]
+    X_train, X_test, y_train, y_test = train_test_split(data_lag, data_lag[target],
+                                                        train_size=0.75, test_size=0.25, shuffle=False)
+    X_test = X_test.iloc[:-horizon]
 
-X_train[target].plot()
-targets[2].plot(label='target')
-plt.legend(loc=0)
-plt.show()
+    X_train[target].plot()
+    targets[2].plot(label='target')
+    plt.legend(loc=0)
+    plt.show()
 
 
 
-for d in range(1, horizon+1):
-    exported_pipeline = make_pipeline(
-        VarianceThreshold(threshold=0.45),
-        LassoLarsCV(normalize=False)
-    )
-    tgt = targets[d][:len(X_train)]
-    tgtt = targets[d][len(X_train):]
+    for d in range(1, horizon+1):
+        exported_pipeline = make_pipeline(
+            VarianceThreshold(threshold=0.45),
+            LassoLarsCV(normalize=False)
+        )
+        tgt = targets[d][:len(X_train)]
+        tgtt = targets[d][len(X_train):]
 
-    exported_pipeline.fit(X_train, tgt)
+        exported_pipeline.fit(X_train, tgt)
 
-# results = exported_pipeline.predict(testing_features)
-#     plot_prediction(X_train.values, tgt.values, exported_pipeline, 'In_Sample_{}'.format(d))
-    plot_prediction(X_test.values, tgtt.values, exported_pipeline, 'Out_of_Sample_{}'.format(d))
+    # results = exported_pipeline.predict(testing_features)
+    #     plot_prediction(X_train.values, tgt.values, exported_pipeline, 'In_Sample_{}'.format(d))
+        plot_prediction(X_test.values, tgtt.values, exported_pipeline, 'Out_of_Sample_{}'.format(d))
 
