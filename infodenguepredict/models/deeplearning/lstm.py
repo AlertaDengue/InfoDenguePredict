@@ -184,7 +184,7 @@ def evaluate(city, model, Xdata, Ydata, label):
     return predicted, metrics
 
 
-def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, cluster=True, load=False):
+def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio=0.7, cluster=True, load=False):
     """
     Train the model
     :param city:
@@ -194,6 +194,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, clust
     :param hidden:
     :param plot:
     :param epochs:
+    :param ratio:
     :param cluster:
     :param load: Whether to load a previously saved model
     :return:
@@ -206,7 +207,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, clust
 
     ##split test and train
     X_train, Y_train, X_test, Y_test = split_data(norm_data,
-                                                  look_back=look_back, ratio=.7,
+                                                  look_back=look_back, ratio=ratio,
                                                   predict_n=predict_n, Y_column=target_col)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
@@ -227,7 +228,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, clust
     return predicted, Y_test, Y_train, factor
 
 
-def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, random=False):
+def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, predict=False):
     """
     Fit an LSTM model to generate predictions for a city, Using its cluster as regressors.
     :param city: geocode of the target city
@@ -239,20 +240,23 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
     :param random: If the model should be trained on a random selection of ten cities of the same state.
     :return:
     """
-    if random == True:
-        data, group = random_data(10, state, city)
-    else:
-        with open('../../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
-            clusters = pickle.load(fp)
-        data, group = get_cluster_data(geocode=city, clusters=clusters,
-                                       data_types=DATA_TYPES, cols=predictors)
+
+    with open('../../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
+        clusters = pickle.load(fp)
+    data, group = get_cluster_data(geocode=city, clusters=clusters,
+                                   data_types=DATA_TYPES, cols=predictors)
 
     indice = list(data.index)
     indice = [i.date() for i in indice]
 
     city_name = get_city_names([city, 0])[0][1]
-    predicted, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back, hidden, epochs)
+    if predict==True:
+        ratio=1
+    else:
+        ratio=0.7
 
+    predicted, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back,
+                                                              hidden, epochs, ratio=ratio)
     plot_predicted_vs_data(predicted,
                            np.concatenate((Y_train, Y_test), axis=0),
                            indice[:],
@@ -261,7 +265,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
                            factor= factor,
                            split_point=len(Y_train))
 
-    return None
+    return predicted
 
 
 def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden, epochs):
