@@ -4,6 +4,7 @@ from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
 from sklearn.model_selection import train_test_split
 from tpot import TPOTRegressor
 import pickle
+import forestci as fci
 from datetime import datetime
 import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_cluster_data
@@ -76,8 +77,12 @@ def plot_prediction(Xdata, ydata, model, title):
     plt.legend(loc=0)
     plt.title(title)
     plt.savefig('RandomForest{}_{}.png'.format(city, title))
+    return preds
 
-
+def confidence_interval(model, Xtrain, Xtest):
+    inbag = fci.calc_inbag(X_train.shape[0], model)
+    ci = fci.random_forest_error(model, Xtrain.values, Xtest.values, inbag=inbag)
+    return ci
 
 if __name__ == "__main__":
     lookback = 12
@@ -103,33 +108,14 @@ if __name__ == "__main__":
     plt.legend(loc=0)
     plt.show()
 
-    # X_train, X_test, y_train, y_test = train_test_split(data, data[target],
-    #                                                     train_size=0.75, test_size=0.25, shuffle=False)
-    # lX_train = build_lagged_features(X_train, lookback)
-    # lX_train['target'] = X_train[target].shift(-horizon)
-    # lX_train.dropna(inplace=True)
-    # lX_test = build_lagged_features(X_test, lookback)
-    # lX_test['target'] = X_test[target].shift(-horizon)
-    # lX_test.dropna(inplace=True)
-    # lX_train[target].plot()
-    # lX_train.target.plot()
-    # plt.legend(loc=0)
-    # plt.show()
-
     for d in range(1, horizon + 1):
         tgt = targets[d][:len(X_train)]
         tgtt = targets[d][len(X_train):]
         model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
 
+        ci = confidence_interval(model, X_train, X_test)
+        print(ci)
+        
         plot_prediction(X_test.values, tgtt.values, model, 'Out_of_Sample_{}'.format(d))
         plt.show()
-    # tgt = lX_train.pop('target')
-    # tgtt = lX_test.pop('target')
-    # model = rolling_forecasts(lX_train, target=tgt, horizon=horizon)
-
-    # plot_prediction(lX_train.values, tgt.values, model, 'In sample')
-    # plot_prediction(lX_test.values, tgtt.values, model, 'Out of sample')
-    # print(model.score(lX_test, tgtt))
-    #
-    # print(model.feature_importances_)
-    # plt.show()
+        break
