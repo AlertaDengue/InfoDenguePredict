@@ -35,7 +35,7 @@ def cluster_viz(geocode, clusters):
 
 
 if __name__ == "__main__":
-    state='RJ'
+    state = 'RJ'
     renderer = hv.Store.renderers['bokeh']
     renderer.dpi = 600
 
