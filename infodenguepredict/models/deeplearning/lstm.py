@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import pickle
 import math
-import string as str
 from matplotlib import pyplot as P
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
