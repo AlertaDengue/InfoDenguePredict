@@ -150,6 +150,8 @@ def build_multicity_dataset(state, cols=None) -> pd.DataFrame:
     """
     full_data = get_alerta_table(state=state)
     if cols:
+        if 'municipio_geocodigo' not in cols:
+            cols.append('municipio_geocodigo')
         full_data = full_data[cols]
 
     full_data = full_data.pivot(index=full_data.index, columns='municipio_geocodigo')
