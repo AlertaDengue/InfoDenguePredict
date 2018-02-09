@@ -17,11 +17,13 @@ def split_data(df, look_back=12, ratio=0.8, predict_n=5, Y_column=0):
     # n_ts is the number of training samples also number of training sets
     # since windows have an overlap of n-1
     n_ts = df.shape[0] - look_back - predict_n
-    data = np.empty((n_ts, look_back + predict_n, df.shape[1]))
-    for i in range(n_ts - predict_n):
+    # data = np.empty((n_ts, look_back + predict_n, df.shape[1]))
+    data = np.empty((df.shape[0], look_back + predict_n, df.shape[1]))
+    for i in range(n_ts):# - predict_):
         #         print(i, df[i: look_back+i+predict_n,0])
         data[i, :, :] = df[i: look_back + i + predict_n, :]
-    train_size = int(n_ts * ratio)
+    # train_size = int(n_ts * ratio)
+    train_size=int(df.shape[0] * ratio)
     print(train_size)
     train = data[:train_size, :, :]
     test = data[train_size:, :, :]
