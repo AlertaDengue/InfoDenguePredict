@@ -8,7 +8,7 @@ import forestci as fci
 from datetime import datetime
 import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_cluster_data
-from infodenguepredict.predict_settings import PREDICTORS, DATA_TYPES, STATE
+from infodenguepredict.predict_settings import PREDICTORS, DATA_TYPES, STATE, CITY
 
 
 def build_model(**kwargs):
@@ -76,7 +76,7 @@ def plot_prediction(Xdata, ydata, model, title):
     plt.plot(preds, ':', label='RandomForest')
     plt.legend(loc=0)
     plt.title(title)
-    plt.savefig('RandomForest{}_{}.png'.format(city, title))
+    plt.savefig('RandomForest{}_{}.png'.format(CITY, title))
     return preds
 
 def confidence_interval(model, Xtrain, Xtest):
@@ -87,11 +87,10 @@ def confidence_interval(model, Xtrain, Xtest):
 if __name__ == "__main__":
     lookback = 12
     horizon = 5  # weeks
-    city = 3304557
-    target = 'casos_{}'.format(city)
+    target = 'casos_{}'.format(CITY)
     with open('../analysis/clusters_{}.pkl'.format(STATE), 'rb') as fp:
         clusters = pickle.load(fp)
-    data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
+    data, group = get_cluster_data(CITY, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
 
     data_lag = build_lagged_features(data, lookback)
     data_lag.dropna()
@@ -112,10 +111,7 @@ if __name__ == "__main__":
         tgt = targets[d][:len(X_train)]
         tgtt = targets[d][len(X_train):]
         model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
-
-        ci = confidence_interval(model, X_train, X_test)
-        print(ci)
         
         plot_prediction(X_test.values, tgtt.values, model, 'Out_of_Sample_{}'.format(d))
         plt.show()
-        break
+

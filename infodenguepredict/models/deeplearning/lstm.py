@@ -224,7 +224,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
     predicted = np.concatenate((predicted_in, predicted_out), axis=0)
     factor = max_features[target_col]
 
-    return predicted, Y_test, Y_train, factor
+    return predicted, X_test, Y_test, Y_train, factor
 
 
 def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, predict=False):
@@ -249,12 +249,12 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
     indice = [i.date() for i in indice]
 
     city_name = get_city_names([city, 0])[0][1]
-    if predict==True:
-        ratio=1
+    if predict:
+        ratio = 1
     else:
-        ratio=0.7
+        ratio = 0.7
 
-    predicted, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back,
+    predicted, X_test, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back,
                                                               hidden, epochs, ratio=ratio)
     plot_predicted_vs_data(predicted,
                            np.concatenate((Y_train, Y_test), axis=0),
