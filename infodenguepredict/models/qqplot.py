@@ -82,6 +82,8 @@ def qqplot(predicted, real, city, state, look_back, all_predict_n=False):
         axs.plot(list(range(preds_max)), list(range(preds_max)), color='black')
         data[train:].plot(x='p_preds', y='q_real', kind='scatter', ax=axs, color='b', legend=True)
         data[:train].plot(x='p_preds', y='q_real', kind='scatter', ax=axs, color='r', legend=True)
+
+        P.savefig('{}/qqplot_{}'.format(FIG_PATH,city), dpi=300)
         # P.show()
     return data
 
