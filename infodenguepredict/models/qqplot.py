@@ -8,9 +8,11 @@ from infodenguepredict.data.infodengue import get_alerta_table, get_cluster_data
 from infodenguepredict.models.deeplearning.lstm import single_prediction
 from infodenguepredict.predict_settings import *
 
+
 def create_px(row):
     res = ss.probplot([row['preds']], dist = row['dists'])
     return res[0][1][0]
+
 
 def create_qy(row):
     res = ss.probplot([row['real']], dist = row['dists'])
@@ -39,6 +41,7 @@ def create_rvs(data, dist='expon'):
 
     rvs = pd.DataFrame({'dists': dists, 'SE': list(Q.groups.keys())})
     return rvs
+
 
 def qqplot(predicted, real, city, state, look_back, all_predict_n=False):
     """
@@ -79,11 +82,11 @@ def qqplot(predicted, real, city, state, look_back, all_predict_n=False):
         axs.plot(list(range(preds_max)), list(range(preds_max)), color='black')
         data[train:].plot(x='p_preds', y='q_real', kind='scatter', ax=axs, color='b', legend=True)
         data[:train].plot(x='p_preds', y='q_real', kind='scatter', ax=axs, color='r', legend=True)
-
-       # P.show()
+        # P.show()
     return data
 
-if '__name__' == '__main__':
+
+if __name__ == "__main__":
     predicted, X_test, Y_test, Y_train, factor = single_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW,
                                                                    look_back=LOOK_BACK,
                                                                    hidden=HIDDEN, epochs=50)
