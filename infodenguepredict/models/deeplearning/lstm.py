@@ -167,7 +167,7 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     P.xticks(rotation=70)
     P.legend(['data', 'predicted'])
     P.savefig("{}/lstm_{}.png".format(FIG_PATH, label), bbox_inches='tight', dpi=300)
-    # P.show()
+    P.show()
 
 
 def loss_and_metrics(model, Xtest, Ytest):
@@ -264,7 +264,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
                            factor= factor,
                            split_point=len(Y_train))
 
-    return predicted
+    return predicted, X_test, Y_test, Y_train, factor
 
 
 def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden, epochs):
