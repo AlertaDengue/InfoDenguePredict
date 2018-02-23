@@ -8,8 +8,7 @@ import forestci as fci
 from datetime import datetime
 import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_cluster_data
-from infodenguepredict.predict_settings import PREDICTORS, DATA_TYPES, STATE, CITY
-
+from infodenguepredict.predict_settings import *
 
 def build_model(**kwargs):
     model = RandomForestRegressor(max_depth=None, random_state=0, n_jobs=-1,
@@ -69,49 +68,70 @@ def rolling_forecasts(data, target, window=12, horizon=1):
     return model
 
 
-def plot_prediction(Xdata, ydata, model, title):
+def plot_prediction(Xdata, ydata, model, title, shift, horizon=None):
     plt.figure()
-    preds = model.predict(Xdata)
+    preds = model.predict(Xdata.values)
+    # pred_in = pred[:-(len(ydata)+shift)]
+    # pred_out = pred[-(len(ydata)+shift):-shift]
     plt.plot(ydata, alpha=0.3, label='Data')
-    plt.plot(preds, ':', label='RandomForest')
+
+    preds_series = pd.Series(data=preds, index=list(ydata.index))
+
+    plt.plot(preds_series, ':', label='RandomForest')
+
     plt.legend(loc=0)
     plt.title(title)
-    plt.savefig('RandomForest{}_{}.png'.format(CITY, title))
-    return preds
+    plt.savefig('{}/RandomForest_{}.png'.format(FIG_PATH, title), dpi=300)
+
+    return preds_series
+
 
 def confidence_interval(model, Xtrain, Xtest):
     inbag = fci.calc_inbag(X_train.shape[0], model)
     ci = fci.random_forest_error(model, Xtrain.values, Xtest.values, inbag=inbag)
     return ci
 
-if __name__ == "__main__":
-    lookback = 12
-    horizon = 5  # weeks
-    target = 'casos_{}'.format(CITY)
-    with open('../analysis/clusters_{}.pkl'.format(STATE), 'rb') as fp:
-        clusters = pickle.load(fp)
-    data, group = get_cluster_data(CITY, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
 
+def rf_prediction(city, state, target, horizon, lookback):
+    with open('infodenguepredict/analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
+        clusters = pickle.load(fp)
+    data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
+
+    casos_est_columns = ['casos_est_{}'.format(i) for i in group]
+    casos_columns = ['casos_{}'.format(i) for i in group]
+
+    data = data.drop(casos_columns, axis=1)
     data_lag = build_lagged_features(data, lookback)
     data_lag.dropna()
     targets = {}
     for d in range(1, horizon + 1):
-        targets[d] = data_lag[target].shift(-d)[:-horizon]
+        if d == 1:
+            targets[d] = data_lag[target].shift(-(d - 1))
+        else:
+            targets[d] = data_lag[target].shift(-(d - 1))[:-(d - 1)]
 
-    X_train, X_test, y_train, y_test = train_test_split(data_lag, data_lag[target],
-                                                        train_size=0.75, test_size=0.25, shuffle=False)
-    X_test = X_test.iloc[:-horizon]
+    X_data = data_lag.drop(casos_est_columns, axis=1)
+    X_train, X_test, y_train, y_test = train_test_split(X_data, data_lag[target],
+                                                        train_size=0.7, test_size=0.3, shuffle=False)
 
-    X_train[target].plot()
-    targets[2].plot(label='target')
-    plt.legend(loc=0)
-    plt.show()
-
+    preds = np.empty((len(data_lag), horizon))
     for d in range(1, horizon + 1):
         tgt = targets[d][:len(X_train)]
-        tgtt = targets[d][len(X_train):]
+        #         tgtt = targets[d][len(X_train):]
+
         model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
-        
-        plot_prediction(X_test.values, tgtt.values, model, 'Out_of_Sample_{}'.format(d))
+        pred = plot_prediction(X_data[:len(targets[d])], targets[d], model, 'Out_of_Sample_{}_{}'.format(d, city), d)
+        pred = pred.values
+
+        dif = len(data_lag) - len(pred)
+        if dif > 0:
+            pred = list(pred) + ([np.nan] * dif)
+        preds[:, (d - 1)] = pred
         plt.show()
 
+    return preds, X_train, targets[d], data_lag
+
+
+if __name__ == "__main__":
+    target = 'casos_est_{}'.format(CITY)
+    preds = rf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
