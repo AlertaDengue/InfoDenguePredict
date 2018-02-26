@@ -4,7 +4,7 @@ import scipy.stats as ss
 
 from matplotlib import pyplot as P
 
-from infodenguepredict.data.infodengue import get_alerta_table, get_cluster_data, random_data, get_city_names
+from infodenguepredict.data.infodengue import get_alerta_table
 from infodenguepredict.models.deeplearning.lstm import single_prediction
 from infodenguepredict.predict_settings import *
 
@@ -54,17 +54,17 @@ def qqplot(predicted, real, city, state, look_back, all_predict_n=False):
     :param all_predict_n: If True, plot the qqplot for every value predicted
     :return:
     """
-    data_full = get_alerta_table(city, 'RJ')
+    data_full = get_alerta_table(city, state)
     data_full = data_full[['casos_est', 'SE']].reset_index(drop=True)
     data_full.SE = [str(i)[-2:] for i in data_full.SE]
 
     rvs = create_rvs(data_full)
 
     if all_predict_n:
-        fig, axs = plt.subplots(4, 1, figsize=[6, 20])
+        fig, axs = P.subplots(4, 1, figsize=[6, 20])
         weeks = list(range(predicted.shape[1]))
     else:
-        fig, axs = plt.subplots(1, 1, figsize=[6, 5])
+        fig, axs = P.subplots(1, 1, figsize=[6, 5])
         weeks = [0]
 
     for week in weeks:
@@ -93,6 +93,6 @@ if __name__ == "__main__":
                                                                    look_back=LOOK_BACK,
                                                                    hidden=HIDDEN, epochs=50)
 
-    real = np.concatenate((Y_train*factor, Y_test*factor))
+    real_values = np.concatenate((Y_train*factor, Y_test*factor))
     preds = predicted*factor
-    df_data = qqplot(predicted, real, CITY, STATE, LOOK_BACK)
+    df_data = qqplot(preds, real_values, CITY, STATE, LOOK_BACK)
