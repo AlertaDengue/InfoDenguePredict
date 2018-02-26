@@ -53,20 +53,22 @@ def llf(id):
 
 
 if __name__ == "__main__":
-    Z, name_ind = create_cluster(STATE, CLUSTER_VARS, COLOR_THRESHOLD)
 
-    plt.figure(figsize=(25, 10))
-    # plt.title('Hierarchical Clustering Dendrogram')
-    # plt.xlabel('sample index')
-    # plt.ylabel('distance')
-    # plt.tight_layout()
-    hac.dendrogram(
-        Z,
-        leaf_rotation=90.,  # rotates the x axis labels
-        leaf_font_size=8.,  # font size for the x axis labels
-        leaf_label_func=llf,
-        color_threshold=COLOR_THRESHOLD * max(Z[:, 2])
-    )
+    for STATE in ['RJ', 'PR', 'Ceará', 'ES']:
+        Z, name_ind = create_cluster(STATE, CLUSTER_VARS, COLOR_THRESHOLD)
 
-    # plt.show()
-    plt.savefig('{}/cluster{}_{}.png'.format(TMP_PATH, STATE, COLOR_THRESHOLD), dpi=300, bbox_inches='tight')
+        plt.figure(figsize=(25, 10))
+        # plt.title('Hierarchical Clustering Dendrogram')
+        # plt.xlabel('sample index')
+        # plt.ylabel('distance')
+        # plt.tight_layout()
+        hac.dendrogram(
+            Z,
+            leaf_rotation=90.,  # rotates the x axis labels
+            leaf_font_size=8.,  # font size for the x axis labels
+            leaf_label_func=llf,
+            color_threshold=COLOR_THRESHOLD * max(Z[:, 2])
+        )
+
+        # plt.show()
+        plt.savefig('{}/cluster{}_{}.png'.format(FIG_PATH, STATE, COLOR_THRESHOLD), dpi=300, bbox_inches='tight')
