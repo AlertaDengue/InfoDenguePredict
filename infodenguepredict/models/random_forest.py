@@ -93,7 +93,7 @@ def confidence_interval(model, Xtrain, Xtest):
 
 
 def rf_prediction(city, state, target, horizon, lookback):
-    with open('infodenguepredict/analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
+    with open('../../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
     data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
 
@@ -129,7 +129,7 @@ def rf_prediction(city, state, target, horizon, lookback):
         preds[:, (d - 1)] = pred
         plt.show()
 
-    return preds, X_train, targets[d], data_lag
+    return preds, X_train, targets, data_lag
 
 
 if __name__ == "__main__":
