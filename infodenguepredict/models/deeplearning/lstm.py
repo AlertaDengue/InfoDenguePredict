@@ -99,7 +99,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
                     bias_initializer='zeros'))
 
     start = time()
-    model.compile(loss="msle", optimizer="nadam", metrics=['accuracy', 'mape'])
+    model.compile(loss="msle", optimizer="nadam", metrics=['accuracy', 'mape', 'mse'])
     print("Compilation Time : ", time() - start)
     plot_model(model, to_file='LSTM_model.png')
     print(model.summary())
@@ -161,12 +161,12 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
         P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-.')
         P.vlines(indice[n: n + pred_window], np.zeros(pred_window), df_predicted[n] * factor, 'b', alpha=0.2)
     P.grid()
-    P.title(label)
+    P.title('Predictions for {}'.format(label))
     P.xlabel('time')
     P.ylabel('incidence')
     P.xticks(rotation=70)
     P.legend(['data', 'predicted'])
-    P.savefig("{}/lstm_{}.png".format(FIG_PATH, label), bbox_inches='tight', dpi=300)
+    P.savefig("{}/lstm_{}.png".format('../saved_models', label), bbox_inches='tight', dpi=400)
     P.show()
 
 
@@ -216,7 +216,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
     if load:
         model.load_weights("trained_{}_model.h5".format(city))
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
-    # model.save('lstm_model')
+    model.save('../saved_models/lstm_{}_epochs_{}.h5'.format(city, epochs))
 
     predicted_out, metrics_out = evaluate(city, model, X_test, Y_test, label='out_of_sample_{}'.format(city))
     predicted_in, metrics_in = evaluate(city, model, X_train, Y_train, label='in_sample_{}'.format(city))
@@ -261,7 +261,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
                            indice[:],
                            label='Predictions for {}'.format(city_name),
                            pred_window=predict_n,
-                           factor= factor,
+                           factor=factor,
                            split_point=len(Y_train))
 
     return predicted, X_test, Y_test, Y_train, factor
@@ -318,10 +318,47 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
     return None
 
 
+def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, predict=False):
+    clusters = pd.read_pickle('../../analysis/clusters_{}.pkl'.format(state))
+
+    for cluster in clusters:
+        data, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
+                                         data_types=DATA_TYPES, cols=predictors)
+        for city in cluster:
+
+            indice = list(data.index)
+            indice = [i.date() for i in indice]
+
+            city_name = get_city_names([city, 0])[0][1]
+            if predict:
+                ratio = 1
+            else:
+                ratio = 0.7
+
+            predicted, X_test, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back,
+                                                                              hidden, epochs, ratio=ratio)
+            plot_predicted_vs_data(predicted,
+                                   np.concatenate((Y_train, Y_test), axis=0),
+                                   indice[:],
+                                   label=city_name,
+                                   pred_window=predict_n,
+                                   factor=factor,
+                                   split_point=len(Y_train))
+            print('{} done'.format(city))
+    return None
+
+
+
 if __name__ == "__main__":
     # K.set_epsilon(1e-5)
-    single_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
-                      hidden=HIDDEN, epochs=EPOCHS)
+
+    # single_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
+    #                   hidden=HIDDEN, epochs=EPOCHS)
+
+    for STATE in ['RJ', 'PR', 'Ceará']:
+        state_prediction(STATE,PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
+                         hidden=HIDDEN, epochs=EPOCHS)
+
 
     # cluster_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK, hidden=HIDDEN, epochs=epochs)
 
