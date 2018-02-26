@@ -6,7 +6,7 @@ Ensemble model
 from tpot import TPOTRegressor
 import pickle
 from infodenguepredict.data.infodengue import get_cluster_data
-from infodenguepredict.predict_settings import PREDICTORS, DATA_TYPES, STATE
+from infodenguepredict.predict_settings import *
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -58,47 +58,69 @@ def rolling_forecasts(data, target):
 
     return model
 
-
-def plot_prediction(Xdata, ydata, model, title):
+def plot_prediction(Xdata, ydata, model, title, shift, horizon=None):
     plt.figure()
-    preds = model.predict(Xdata)
+    preds = model.predict(Xdata.values)
+    # pred_in = pred[:-(len(ydata)+shift)]
+    # pred_out = pred[-(len(ydata)+shift):-shift]
     plt.plot(ydata, alpha=0.3, label='Data')
-    plt.plot(preds, ':', label='Tpot')
+
+    preds_series = pd.Series(data=preds, index=list(ydata.index))
+
+    plt.plot(preds_series, ':', label='RandomForest')
+
     plt.legend(loc=0)
     plt.title(title)
-    plt.savefig('TPOT{}_{}.png'.format(city, title))
+    plt.savefig('{}/TPOT{}.png'.format(FIG_PATH, title), dpi=300)
 
+    return preds_series
+
+# def plot_prediction(Xdata, ydata, model, title):
+#     plt.figure()
+#     preds = model.predict(Xdata)
+#     plt.plot(ydata, alpha=0.3, label='Data')
+#     plt.plot(preds, ':', label='Tpot')n)
+#     lX_test.dropna(inplace=True)
+#     lX_train[target].plot()
+#     lX_train.target.plot()
+#     plt.legend(loc=0)
+#     plt.show()
+#     plt.legend(loc=0)
+#     plt.title(title)
+#     plt.savefig('TPOT{}_{}.png'.format(city, title))
+
+
+def ensemble_tpot(city, state, target, horizon, lookback):
+    with open('../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
+        clusters = pickle.load(fp)
+        data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
+
+    casos_est_columns = ['casos_est_{}'.format(i) for i in group]
+    casos_columns = ['casos_{}'.format(i) for i in group]
+
+    data = data.drop(casos_columns, axis=1)
+    data_lag = build_lagged_features(data, lookback)
+    data_lag.dropna()
+
+    X_data = data_lag.drop(casos_est_columns, axis=1)
+    X_train, X_test, y_train, y_test = train_test_split(X_data, data_lag[target],
+                                                        train_size=0.7, test_size=0.3, shuffle=False)
+
+    tgt_full = data_lag[target].shift(-(horizon - 1))[:-(horizon - 1)]
+    tgt = tgt_full[:len(X_train)]
+    tgtt = tgt_full[len(X_train):]
+
+    model = TPOTRegressor(generations=20, population_size=100, verbosity=2)
+    model.fit(X_train, target=tgt)
+    model.export('tpot_{}_pipeline.py'.format(city))
+    print(model.score(X_test[:len(tgtt)], tgtt))
+
+    pred = plot_prediction(X_data[:len(tgt_full)], tgt_full, model, 'Out_of_Sample_{}_{}'.format(horizon, city), horizon)
+    plt.show()
+    return pred
 
 
 if __name__ == "__main__":
-    lookback = 12
-    horizon = 5  # weeks
-    city = 3304557
-    target = 'casos_{}'.format(city)
-    with open('../analysis/clusters_{}.pkl'.format(STATE), 'rb') as fp:
-        clusters = pickle.load(fp)
-    data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
+    target = 'casos_est_{}'.format(CITY)
 
-    X_train, X_test, y_train, y_test = train_test_split(data, data[target],
-                                                        train_size=0.75, test_size=0.25, shuffle=False)
-    lX_train = build_lagged_features(X_train, lookback)
-    lX_train['target'] = X_train[target].shift(horizon)
-    lX_train.dropna(inplace=True)
-    lX_test = build_lagged_features(X_test, lookback)
-    lX_test['target'] = X_test[target].shift(horizon)
-    lX_test.dropna(inplace=True)
-    lX_train[target].plot()
-    lX_train.target.plot()
-    plt.legend(loc=0)
-    plt.show()
-
-    tgt = lX_train.pop('target')
-    tgtt = lX_test.pop('target')
-    model = rolling_forecasts(lX_train, target=tgt, horizon=horizon)
-
-    plot_prediction(lX_train.values, tgt.values, model, 'In sample')
-    plot_prediction(lX_test.values, tgtt.values, model, 'Out of sample')
-    print(model.score(lX_test, tgtt))
-    model.export('tpot_{}_pipeline.py'.format(city))
-
-    plt.show()
+    preds = ensemble_tpot(CITY, STATE, target=target, horizon=4, lookback=4)
