@@ -1,5 +1,6 @@
 # Temporary and binary files
 *.pkl
+*.csv
 *~
 *.py[cod]
 *.so
@@ -42,6 +43,9 @@ cover/*
 MANIFEST
 
 infodenguepredict/data/settings.ini
+infodenguepredict/models/saved_models/*
+infodenguepredict/predict_settings.py
+*.ipynb
 
 #image files
 *.png
