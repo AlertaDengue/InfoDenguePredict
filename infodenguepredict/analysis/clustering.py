@@ -54,7 +54,7 @@ def llf(id):
 
 if __name__ == "__main__":
 
-    for STATE in ['RJ', 'PR', 'Ceará', 'ES']:
+    for STATE in ['RJ', 'PR', 'Ceará']:# 'ES']:
         Z, name_ind = create_cluster(STATE, CLUSTER_VARS, COLOR_THRESHOLD)
 
         plt.figure(figsize=(25, 10))
@@ -62,7 +62,7 @@ if __name__ == "__main__":
         # plt.xlabel('sample index')
         # plt.ylabel('distance')
         # plt.tight_layout()
-        hac.dendrogram(
+        D = hac.dendrogram(
             Z,
             leaf_rotation=90.,  # rotates the x axis labels
             leaf_font_size=8.,  # font size for the x axis labels
@@ -70,5 +70,11 @@ if __name__ == "__main__":
             color_threshold=COLOR_THRESHOLD * max(Z[:, 2])
         )
 
-        # plt.show()
         plt.savefig('{}/cluster{}_{}.png'.format(FIG_PATH, STATE, COLOR_THRESHOLD), dpi=300, bbox_inches='tight')
+
+        with open('dendrogram_{}.pkl'.format(STATE), 'wb') as fp:
+            pickle.dump(D, fp)
+
+        # plt.show()
+
+
