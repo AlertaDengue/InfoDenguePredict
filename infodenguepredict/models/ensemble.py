@@ -5,6 +5,8 @@ Ensemble model
 
 from tpot import TPOTRegressor
 import pickle
+import sys
+sys.path.insert(0, '../../')
 from infodenguepredict.data.infodengue import get_cluster_data
 from infodenguepredict.predict_settings import *
 from sklearn.model_selection import train_test_split
