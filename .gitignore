@@ -42,6 +42,9 @@ cover/*
 MANIFEST
 
 infodenguepredict/data/settings.ini
+infodenguepredict/models/saved_models/*
+infodenguepredict/predict_settings.py
+*.ipynb
 
 #image files
 *.png
