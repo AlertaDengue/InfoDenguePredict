@@ -2,12 +2,13 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import *
 from tpot import TPOTRegressor
 import pickle
 import forestci as fci
 from datetime import datetime
 import matplotlib.pyplot as plt
-from infodenguepredict.data.infodengue import get_cluster_data
+from infodenguepredict.data.infodengue import get_cluster_data, get_city_names
 from infodenguepredict.predict_settings import *
 
 def build_model(**kwargs):
@@ -68,32 +69,45 @@ def rolling_forecasts(data, target, window=12, horizon=1):
     return model
 
 
-def plot_prediction(Xdata, ydata, model, title, shift, horizon=None):
+def calculate_metrics(pred,ytrue):
+    return [mean_absolute_error(ytrue, pred), explained_variance_score(ytrue, pred),
+            mean_squared_error(ytrue, pred), mean_squared_log_error(ytrue, pred),
+            median_absolute_error(ytrue, pred), r2_score(ytrue, pred)]
+
+
+def plot_prediction(preds, ydata, title, train_size):
     plt.figure()
-    preds = model.predict(Xdata.values)
-    # pred_in = pred[:-(len(ydata)+shift)]
-    # pred_out = pred[-(len(ydata)+shift):-shift]
-    plt.plot(ydata, alpha=0.3, label='Data')
+    plt.plot(ydata, alpha=0.3)
 
-    preds_series = pd.Series(data=preds, index=list(ydata.index))
+    point = ydata.index[train_size]
 
-    plt.plot(preds_series, ':', label='RandomForest')
+    min_val = min([min(ydata), np.nanmin(preds)])
+    max_val = max([max(ydata), np.nanmax(preds)])
+    plt.vlines(point, min_val, max_val, 'g', 'dashdot', lw=2)
 
+    llist = range(len(ydata.index) - (preds.shape[1]))
+    for n in llist:
+        plt.plot(ydata.index[n: n + 4], preds[n], 'r-.', alpha=0.4)
+
+    plt.text(point, 0.6 * max_val, "Out of sample Predictions")
+    plt.ylabel('indices')
     plt.legend(loc=0)
-    plt.title(title)
-    plt.savefig('{}/RandomForest_{}.png'.format(FIG_PATH, title), dpi=300)
+    plt.title('Predictions for {}'.format(title))
+    plt.xticks(rotation=70)
+    plt.legend(['data', 'predicted'])
 
-    return preds_series
+    plt.savefig('{}/rf_{}.png'.format('saved_models/random_forest', title), dpi=300)
+    return None
 
 
 def confidence_interval(model, Xtrain, Xtest):
-    inbag = fci.calc_inbag(X_train.shape[0], model)
+    inbag = fci.calc_inbag(Xtrain.shape[0], model)
     ci = fci.random_forest_error(model, Xtrain.values, Xtest.values, inbag=inbag)
     return ci
 
 
 def rf_prediction(city, state, target, horizon, lookback):
-    with open('../../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
+    with open('../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
     data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
 
@@ -114,24 +128,79 @@ def rf_prediction(city, state, target, horizon, lookback):
     X_train, X_test, y_train, y_test = train_test_split(X_data, data_lag[target],
                                                         train_size=0.7, test_size=0.3, shuffle=False)
 
+    city_name = get_city_names([city, 0])[0][1]
     preds = np.empty((len(data_lag), horizon))
     for d in range(1, horizon + 1):
         tgt = targets[d][:len(X_train)]
-        #         tgtt = targets[d][len(X_train):]
 
         model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
-        pred = plot_prediction(X_data[:len(targets[d])], targets[d], model, 'Out_of_Sample_{}_{}'.format(d, city), d)
-        pred = pred.values
+        pred = model.predict(X_data[:len(targets[d])])
+        #         pred = pred.values
 
         dif = len(data_lag) - len(pred)
         if dif > 0:
             pred = list(pred) + ([np.nan] * dif)
         preds[:, (d - 1)] = pred
-        plt.show()
+
+    plot_prediction(preds, targets[1], city_name, len(X_train))
+    plt.show()
 
     return preds, X_train, targets, data_lag
 
 
+def rf_state_prediction(state, lookback, horizon, predictors):
+    clusters = pd.read_pickle('../analysis/clusters_{}.pkl'.format(state))
+
+    for cluster in clusters:
+        data_full, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
+                                       data_types=DATA_TYPES, cols=predictors)
+        for city in cluster:
+            target = 'casos_est_{}'.format(city)
+            casos_est_columns = ['casos_est_{}'.format(i) for i in group]
+            casos_columns = ['casos_{}'.format(i) for i in group]
+
+            data = data_full.drop(casos_columns, axis=1)
+            data_lag = build_lagged_features(data, lookback)
+            data_lag.dropna()
+            targets = {}
+            for d in range(1, horizon + 1):
+                if d == 1:
+                    targets[d] = data_lag[target].shift(-(d - 1))
+                else:
+                    targets[d] = data_lag[target].shift(-(d - 1))[:-(d - 1)]
+
+            X_data = data_lag.drop(casos_est_columns, axis=1)
+            X_train, X_test, y_train, y_test = train_test_split(X_data, data_lag[target],
+                                                                train_size=0.7, test_size=0.3, shuffle=False)
+
+            city_name = get_city_names([city, 0])[0][1]
+            preds = np.empty((len(data_lag), horizon))
+            metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
+                                          'mean_squared_error', 'mean_squared_log_error',
+                                          'median_absolute_error', 'r2_score'))
+            for d in range(1, horizon + 1):
+                tgt = targets[d][:len(X_train)]
+                tgtt = targets[d][len(X_train):]
+
+                model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
+                pred = model.predict(X_data[:len(targets[d])])
+
+                dif = len(data_lag) - len(pred)
+                if dif > 0:
+                    pred = list(pred) + ([np.nan] * dif)
+                preds[:, (d - 1)] = pred
+
+                pred_m = model.predict(X_test[:(len(tgtt))])
+                metrics[d] = calculate_metrics(pred_m, tgtt)
+
+            metrics.to_pickle('{}/rf_metrics_{}.pkl'.format('saved_models/random_forest', city))
+            plot_prediction(preds, targets[1], city_name, len(X_train))
+            plt.show()
+    return None
+
+
 if __name__ == "__main__":
-    target = 'casos_est_{}'.format(CITY)
-    preds = rf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
+    # target = 'casos_est_{}'.format(CITY)
+    # preds = rf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
+    for STATE in ['RJ', 'PR', 'Ceará']:
+        rf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
