@@ -90,6 +90,7 @@ def plot_prediction(preds, ydata, title, train_size):
         plt.plot(ydata.index[n: n + 4], preds[n], 'r-.', alpha=0.4)
 
     plt.text(point, 0.6 * max_val, "Out of sample Predictions")
+    plt.grid()
     plt.ylabel('indices')
     plt.legend(loc=0)
     plt.title('Predictions for {}'.format(title))
