@@ -1,92 +1,121 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
+
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.linear_model import LassoLarsCV
+from sklearn.linear_model import ElasticNetCV, LassoLarsCV
+from tpot.builtins import StackingEstimator
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
-from infodenguepredict.data.infodengue import get_cluster_data
-from infodenguepredict.predict_settings import PREDICTORS, DATA_TYPES, STATE
-import pickle
-import matplotlib.pyplot as plt
+from sklearn.metrics import *
 
-def build_lagged_features(dt, lag=2, dropna=True):
-    '''
-    Builds a new DataFrame to facilitate regressing over all possible lagged features
-    :param dt: Dataframe containing features
-    :param lag: maximum lags to compute
-    :param dropna: if true the initial rows containing NANs due to lagging will be dropped
-    :return: Dataframe
-    '''
-    if type(dt) is pd.DataFrame:
-        new_dict = {}
-        for col_name in dt:
-            new_dict[col_name] = dt[col_name]
-            # create lagged Series
-            for l in range(1, lag + 1):
-                new_dict['%s_lag%d' % (col_name, l)] = dt[col_name].shift(l)
-        res = pd.DataFrame(new_dict, index=dt.index)
+from infodenguepredict.data.infodengue import get_cluster_data, get_city_names
+from infodenguepredict.models.random_forest import build_lagged_features
+from infodenguepredict.predict_settings import *
 
-    elif type(dt) is pd.Series:
-        the_range = range(lag + 1)
-        res = pd.concat([dt.shift(i) for i in the_range], axis=1)
-        res.columns = ['lag_%d' % i for i in the_range]
-    else:
-        print('Only works for DataFrame or Series')
-        return None
-    if dropna:
-        return res.dropna()
-    else:
-        return res
 
-def plot_prediction(Xdata, ydata, model, title):
-    plt.figure()
-    preds = model.predict(Xdata)
-    plt.plot(preds, ':', label='Tpot')
-    plt.plot(ydata, alpha=0.3, label='Data')
+def plot_prediction(preds, ydata, title, train_size):
+    plt.clf()
+    plt.plot(ydata, 'k-')
+
+    point = ydata.index[train_size]
+
+    min_val = min([min(ydata), np.nanmin(preds)])
+    max_val = max([max(ydata), np.nanmax(preds)])
+    plt.vlines(point, min_val, max_val, 'g', 'dashdot', lw=2)
+
+    pred_window = preds.shape[1]
+    llist = range(len(ydata.index) - (preds.shape[1]))
+    for n in llist:
+        plt.plot(ydata.index[n: n + pred_window], preds[n], 'r-.', alpha=0.3)
+        plt.vlines(ydata.index[n: n + pred_window], np.zeros(pred_window), preds[n], 'b', alpha=0.2)
+
+    plt.text(point, 0.6 * max_val, "Out of sample Predictions")
+    plt.grid()
+    plt.ylabel('indices')
     plt.legend(loc=0)
-    plt.title(title)
-    plt.savefig('TPOT{}_{}.png'.format(city, title))
-    plt.show()
+    plt.title('Predictions for {}'.format(title))
+    plt.xticks(rotation=70)
+    plt.legend(['data', 'predicted'])
+
+    plt.savefig('{}/{}/rf_{}.png'.format('saved_models/tpot_lasso', STATE, title), dpi=300)
+    return None
+
+def calculate_metrics(pred,ytrue):
+    negs = np.where(pred<0)[0]
+    if len(negs) > 0:
+        print(negs[0])
+        ytrue_new = ytrue.reset_index().drop(negs)
+        print('oi')
+        pred_new = np.delete(pred,negs)
+        print(len(ytrue_new), len(pred_new))
+        msle = mean_squared_log_error(ytrue_new.drop('index', axis=1), pred_new)
+        print(msle)
+    else:
+        msle = mean_squared_log_error(ytrue, pred)
+    return [mean_absolute_error(ytrue, pred), explained_variance_score(ytrue, pred),
+            mean_squared_error(ytrue, pred), msle,
+            median_absolute_error(ytrue, pred), r2_score(ytrue, pred)]
+
+def rf_state_prediction(state, lookback, horizon, predictors):
+    clusters = pd.read_pickle('../analysis/clusters_{}.pkl'.format(state))
+
+    for cluster in clusters:
+        data_full, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
+                                            data_types=DATA_TYPES, cols=predictors)
+        for city in cluster:
+            target = 'casos_est_{}'.format(city)
+            casos_est_columns = ['casos_est_{}'.format(i) for i in group]
+            casos_columns = ['casos_{}'.format(i) for i in group]
+
+            data = data_full.drop(casos_columns, axis=1)
+            data_lag = build_lagged_features(data, lookback)
+            data_lag.dropna()
+            targets = {}
+            for d in range(1, horizon + 1):
+                if d == 1:
+                    targets[d] = data_lag[target].shift(-(d - 1))
+                else:
+                    targets[d] = data_lag[target].shift(-(d - 1))[:-(d - 1)]
+
+            X_data = data_lag.drop(casos_est_columns, axis=1)
+            X_train, X_test, y_train, y_test = train_test_split(X_data, data_lag[target],
+                                                                train_size=0.7, test_size=0.3, shuffle=False)
+
+            city_name = get_city_names([city, 0])[0][1]
+            preds = np.empty((len(data_lag), horizon))
+            metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
+                                          'mean_squared_error', 'mean_squared_log_error',
+                                          'median_absolute_error', 'r2_score'))
+            for d in range(1, horizon + 1):
+                model = make_pipeline(
+                    StackingEstimator(estimator=LassoLarsCV(normalize=True)),
+                    StackingEstimator(estimator=ElasticNetCV(l1_ratio=0.75, tol=1e-05)),
+                    StackingEstimator(estimator=LassoLarsCV(normalize=True)),
+                    StackingEstimator(estimator=LassoLarsCV(normalize=True)),
+                    ElasticNetCV(l1_ratio=0.8500000000000001, tol=0.01))
+
+                tgt = targets[d][:len(X_train)]
+                tgtt = targets[d][len(X_train):]
+
+                model.fit(X_train, tgt)
+                pred = model.predict(X_data[:len(targets[d])])
+
+                dif = len(data_lag) - len(pred)
+                if dif > 0:
+                    pred = list(pred) + ([np.nan] * dif)
+                preds[:, (d - 1)] = pred
+
+                pred_m = model.predict(X_test[:(len(tgtt))])
+                metrics[d] = calculate_metrics(pred_m, tgtt)
+
+            metrics.to_pickle('{}/{}/rf_metrics_{}.pkl'.format('saved_models/tpot_lasso', state, city))
+            plot_prediction(preds, targets[1], city_name, len(X_train))
+            # plt.show()
+    return None
 
 # NOTE: Make sure that the class is labeled 'target' in the data file
 
 if __name__=="__main__":
-    lookback = 12
-    horizon = 10  # weeks
-    city = 3303302
-    target = 'casos_{}'.format(city)
-    with open('infodenguepredict/analysis/clusters_{}.pkl'.format(STATE), 'rb') as fp:
-        clusters = pickle.load(fp)
-    data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
-
-    data_lag = build_lagged_features(data, lookback)
-    data_lag.dropna()
-    targets = {}
-    for d in range(1, horizon+1):
-        targets[d] = data_lag[target].shift(-d)[:-horizon]
-
-    X_train, X_test, y_train, y_test = train_test_split(data_lag, data_lag[target],
-                                                        train_size=0.75, test_size=0.25, shuffle=False)
-    X_test = X_test.iloc[:-horizon]
-
-    X_train[target].plot()
-    targets[2].plot(label='target')
-    plt.legend(loc=0)
-    plt.show()
-
-
-
-    for d in range(1, horizon+1):
-        exported_pipeline = make_pipeline(
-            VarianceThreshold(threshold=0.45),
-            LassoLarsCV(normalize=False)
-        )
-        tgt = targets[d][:len(X_train)]
-        tgtt = targets[d][len(X_train):]
-
-        exported_pipeline.fit(X_train, tgt)
-
-    # results = exported_pipeline.predict(testing_features)
-    #     plot_prediction(X_train.values, tgt.values, exported_pipeline, 'In_Sample_{}'.format(d))
-        plot_prediction(X_test.values, tgtt.values, exported_pipeline, 'Out_of_Sample_{}'.format(d))
-
+    for STATE in ['RJ', 'PR', 'Ceará']:
+        rf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
