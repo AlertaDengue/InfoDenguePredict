@@ -77,7 +77,7 @@ def calculate_metrics(pred,ytrue):
 
 def plot_prediction(preds, ydata, title, train_size):
     plt.figure()
-    plt.plot(ydata, alpha=0.3)
+    plt.plot(ydata, 'k-')
 
     point = ydata.index[train_size]
 
@@ -85,9 +85,11 @@ def plot_prediction(preds, ydata, title, train_size):
     max_val = max([max(ydata), np.nanmax(preds)])
     plt.vlines(point, min_val, max_val, 'g', 'dashdot', lw=2)
 
+    pred_window = preds.shape[1]
     llist = range(len(ydata.index) - (preds.shape[1]))
     for n in llist:
-        plt.plot(ydata.index[n: n + 4], preds[n], 'r-.', alpha=0.4)
+        plt.plot(ydata.index[n: n + pred_window], preds[n], 'r-.', alpha=0.3)
+        plt.vlines(ydata.index[n: n + pred_window], np.zeros(pred_window), preds[n], 'b', alpha=0.2)
 
     plt.text(point, 0.6 * max_val, "Out of sample Predictions")
     plt.grid()
@@ -97,7 +99,7 @@ def plot_prediction(preds, ydata, title, train_size):
     plt.xticks(rotation=70)
     plt.legend(['data', 'predicted'])
 
-    plt.savefig('{}/rf_{}.png'.format('saved_models/random_forest', title), dpi=300)
+    plt.savefig('{}/{}/rf_{}.png'.format('saved_models/random_forest', STATE, title), dpi=300)
     return None
 
 
@@ -194,7 +196,7 @@ def rf_state_prediction(state, lookback, horizon, predictors):
                 pred_m = model.predict(X_test[:(len(tgtt))])
                 metrics[d] = calculate_metrics(pred_m, tgtt)
 
-            metrics.to_pickle('{}/rf_metrics_{}.pkl'.format('saved_models/random_forest', city))
+            metrics.to_pickle('{}/{}/rf_metrics_{}.pkl'.format('saved_models/random_forest', state, city))
             plot_prediction(preds, targets[1], city_name, len(X_train))
             plt.show()
     return None
@@ -203,5 +205,5 @@ def rf_state_prediction(state, lookback, horizon, predictors):
 if __name__ == "__main__":
     # target = 'casos_est_{}'.format(CITY)
     # preds = rf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
-    for STATE in ['RJ', 'PR', 'Ceará']:
+    for STATE in ['PR', 'Ceará']:
         rf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
