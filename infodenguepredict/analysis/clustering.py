@@ -62,7 +62,7 @@ if __name__ == "__main__":
         # plt.xlabel('sample index')
         # plt.ylabel('distance')
         # plt.tight_layout()
-        D = hac.dendrogram(
+        hac.dendrogram(
             Z,
             leaf_rotation=90.,  # rotates the x axis labels
             leaf_font_size=8.,  # font size for the x axis labels
@@ -71,9 +71,6 @@ if __name__ == "__main__":
         )
 
         plt.savefig('{}/cluster{}_{}.png'.format(FIG_PATH, STATE, COLOR_THRESHOLD), dpi=300, bbox_inches='tight')
-
-        with open('dendrogram_{}.pkl'.format(STATE), 'wb') as fp:
-            pickle.dump(D, fp)
 
         # plt.show()
 
