@@ -76,7 +76,7 @@ def calculate_metrics(pred,ytrue):
 
 
 def plot_prediction(preds, ydata, title, train_size):
-    plt.figure()
+    plt.clf()
     plt.plot(ydata, 'k-')
 
     point = ydata.index[train_size]
@@ -198,7 +198,7 @@ def rf_state_prediction(state, lookback, horizon, predictors):
 
             metrics.to_pickle('{}/{}/rf_metrics_{}.pkl'.format('saved_models/random_forest', state, city))
             plot_prediction(preds, targets[1], city_name, len(X_train))
-            plt.show()
+            # plt.show()
     return None
 
 
