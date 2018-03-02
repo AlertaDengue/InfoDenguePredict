@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import os
 from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import *
@@ -69,7 +70,7 @@ def rolling_forecasts(data, target, window=12, horizon=1):
     return model
 
 
-def calculate_metrics(pred,ytrue):
+def calculate_metrics(pred, ytrue):
     return [mean_absolute_error(ytrue, pred), explained_variance_score(ytrue, pred),
             mean_squared_error(ytrue, pred), mean_squared_log_error(ytrue, pred),
             median_absolute_error(ytrue, pred), r2_score(ytrue, pred)]
@@ -158,6 +159,10 @@ def rf_state_prediction(state, lookback, horizon, predictors):
         data_full, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
                                        data_types=DATA_TYPES, cols=predictors)
         for city in cluster:
+            if os.path.isfile('/home/elisa/Documentos/resultados_infodengue/{}/rf_metrics_{}.pkl'.format(state, city)):
+                print('done')
+                continue
+
             target = 'casos_est_{}'.format(city)
             casos_est_columns = ['casos_est_{}'.format(i) for i in group]
             casos_columns = ['casos_{}'.format(i) for i in group]
@@ -193,7 +198,7 @@ def rf_state_prediction(state, lookback, horizon, predictors):
                     pred = list(pred) + ([np.nan] * dif)
                 preds[:, (d - 1)] = pred
 
-                pred_m = model.predict(X_test[:(len(tgtt))])
+                pred_m = model.predict(X_test[(d-1):])
                 metrics[d] = calculate_metrics(pred_m, tgtt)
 
             metrics.to_pickle('{}/{}/rf_metrics_{}.pkl'.format('saved_models/random_forest', state, city))
@@ -205,5 +210,5 @@ def rf_state_prediction(state, lookback, horizon, predictors):
 if __name__ == "__main__":
     # target = 'casos_est_{}'.format(CITY)
     # preds = rf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
-    for STATE in ['PR', 'Ceará']:
+    for STATE in ['PR']:
         rf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
