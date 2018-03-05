@@ -1,8 +1,7 @@
-u"""
+"""
 Created on 27/01/17
 by fccoelho
 license: GPL V3 or Later
-
 adapted from this example:
 http://machinelearningmastery.com/time-series-prediction-with-deep-learning-in-python-with-keras/
 """
@@ -17,9 +16,8 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.utils.visualize_util import plot
 from infodenguepredict.models.deeplearning.preprocessing import split_data, normalize_data
-from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, build_multicity_dataset
-
-
+from infodenguepredict.data.infodengue import get_alerta_table, get_temperature_data, get_tweet_data, \
+    build_multicity_dataset
 
 
 def build_model(hidden, features, look_back=10, batch_size=1):
@@ -36,14 +34,14 @@ def build_model(hidden, features, look_back=10, batch_size=1):
     model.add(Dense(hidden, input_shape=(look_back, features)))
     # model.add(Dropout(0.2))
 
-    model.add(Dense((prediction_window), activation='relu') )  # five time-step ahead prediction
-
+    model.add(Dense((prediction_window), activation='relu'))  # five time-step ahead prediction
 
     start = time()
     model.compile(loss="mse", optimizer="rmsprop")
     print("Compilation Time : ", time() - start)
     plot(model, to_file='model.png')
     return model
+
 
 def train(model, X_train, Y_train, batch_size=1, epochs=20, overwrite=True):
     hist = model.fit(X_train, Y_train,
@@ -52,7 +50,7 @@ def train(model, X_train, Y_train, batch_size=1, epochs=20, overwrite=True):
     return hist
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     HIDDEN = 256
     TIME_WINDOW = 12
     BATCH_SIZE = 1

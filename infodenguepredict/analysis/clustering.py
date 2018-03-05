@@ -1,6 +1,6 @@
 import pickle
 import pandas as pd
-import numpy as np
+import seaborn as sns
 import scipy.cluster.hierarchy as hac
 import matplotlib.pyplot as plt
 
@@ -36,15 +36,20 @@ def matrix_cluster(cities_list, clusters):
 def create_cluster(state, cols, t):
     cities_list = alocate_data(state)
     dists = distance(cities_list, cols)
+
+    dists_full = dists + dists.T
+    sns_plot = sns.clustermap(dists_full, cmap="vlag")
+    sns_plot.savefig("cluster_corr_{}.png".format(state), dpi=400)
+
     Z, clusters = hierarchical_clustering(dists, t=t)
     print(clusters)
     matrix_cluster(cities_list=cities_list, clusters=clusters)
 
     with open('clusters_{}.pkl'.format(state), 'wb') as fp:
         pickle.dump(clusters, fp)
-
     print("{} clusters saved".format(state))
     name_ind = get_city_names(list(dists.index))
+
     return Z, name_ind
 
 
@@ -62,7 +67,7 @@ if __name__ == "__main__":
         # plt.xlabel('sample index')
         # plt.ylabel('distance')
         # plt.tight_layout()
-        D = hac.dendrogram(
+        hac.dendrogram(
             Z,
             leaf_rotation=90.,  # rotates the x axis labels
             leaf_font_size=8.,  # font size for the x axis labels
@@ -71,9 +76,6 @@ if __name__ == "__main__":
         )
 
         plt.savefig('{}/cluster{}_{}.png'.format(FIG_PATH, STATE, COLOR_THRESHOLD), dpi=300, bbox_inches='tight')
-
-        with open('dendrogram_{}.pkl'.format(STATE), 'wb') as fp:
-            pickle.dump(D, fp)
 
         # plt.show()
 

@@ -16,33 +16,38 @@ def cluster_viz(geocode, clusters):
     city_names = dict(get_city_names(group))
     df_hm = data.reset_index().rename(columns={'index': 'week'})
     df_hm = pd.melt(df_hm, id_vars=['week'], var_name='city', value_name='incidence')
-    df_hm['city'] = [re.sub('casos_', '', i) for i in df_hm.city]
-    df_hm['city'] = [city_names[int(i)] for i in df_hm.city]
+    df_hm['city'] = [int(re.sub('casos_', '', i)) for i in df_hm.city]
+    df_hm['city'] = [city_names[i] for i in df_hm.city]
 
-    curve_opts = dict(line_width=10, line_alpha=0.4)
-    overlay_opts = dict(width=900, height=200)
-    hm_opts = dict(width=900, height=500, tools=[None], logz=True, invert_yaxis=True, xrotation=90,
+#     return df_hm
+    curve_opts = dict(line_width=10, line_alpha=0.4,tools=[])
+    overlay_opts = dict(width=900, height=200,tools=[])
+    hm_opts = dict(width=900, height=500, tools=[], logz=True, invert_yaxis=False, xrotation=90,
                    labelled=[], toolbar=None, xaxis=None)
 
-    heatmap = hv.HeatMap(df_hm, label='Dengue Incidence')
+    heatmap = hv.HeatMap(df_hm)
+    heatmap.toolbar_location = None
     graphs = [hv.Curve((data.index, data[i]), 'Time', 'Incidence') for i in data.columns]
     final = graphs[0]
     for i in graphs[1:]:
         final = final * i
 
-    opts = {'HeatMap': {'plot': hm_opts}, 'Overlay': {'plot': overlay_opts}, 'Curve': {'plot': curve_opts}}
+    opts = {'HeatMap': {'plot': hm_opts}, 'Overlay': {'plot': overlay_opts},
+            'Curve': {'plot': curve_opts,
+                      'style': dict(color='blue', line_alpha=0.2)}}
     return (heatmap + final).opts(opts).cols(1)
 
 
 if __name__ == "__main__":
-    state = 'RJ'
     renderer = hv.Store.renderers['bokeh']
     renderer.dpi = 600
 
-    with open('clusters_{}.pkl'.format(state), 'rb') as fp:
-        clusters = pickle.load(fp)
+    for STATE in ['RJ', 'PR', 'Ceará']:
+        clusters = pd.read_pickle('clusters_{}.pkl'.format(STATE))
 
-    for c in clusters:
-        plot = cluster_viz(c[0], clusters)
-        renderer.save(plot, '{}/cluster_{}'.format(FIG_PATH, str(c[0])), 'png')
+        for c in clusters:
+            if len(c) == 1:
+                continue
+            plot = cluster_viz(c[0], clusters)
+            renderer.save(plot, 'cluster_figs/cluster_{}'.format(str(c[0])), 'png')
 

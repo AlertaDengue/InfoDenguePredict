@@ -7,7 +7,6 @@ for remote database access, we recommend establishing an SSH tunnel:
 import pandas as pd
 import random
 from sqlalchemy import create_engine
-from infodenguepredict.predict_settings import *
 from decouple import config
 
 
