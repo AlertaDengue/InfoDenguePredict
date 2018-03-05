@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import pickle
 import math
+import os
+
 from matplotlib import pyplot as P
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
@@ -345,6 +347,8 @@ def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, pr
         data, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
                                          data_types=DATA_TYPES, cols=predictors)
         for city in cluster:
+            if os.path.exists('../saved_models/LSTM/{}/predicted_lstm_{}.pkl'.format(state, city)):
+                continue
 
             indice = list(data.index)
             indice = [i.date() for i in indice]
