@@ -12,6 +12,7 @@ from keras import backend as K
 from hyperas.distributions import uniform, choice
 from hyperas import optim
 from hyperopt import Trials, STATUS_OK, tpe
+from sklearn.metrics import *
 
 from time import time
 from infodenguepredict.data.infodengue import combined_data, get_cluster_data, random_data, get_city_names
@@ -120,9 +121,9 @@ def train(model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwr
                      validation_split=0.15,
                      verbose=1,
                      callbacks=[TB_callback])
-    with open('history_{}.pkl'.format(geocode), 'wb') as f:
-        pickle.dump(hist.history, f)
-    model.save_weights('trained_{}_model.h5'.format(geocode), overwrite=overwrite)
+    # with open('history_{}.pkl'.format(geocode), 'wb') as f:
+    #     pickle.dump(hist.history, f)
+    # model.save_weights('trained_{}_model.h5'.format(geocode), overwrite=overwrite)
     return hist
 
 
@@ -137,7 +138,7 @@ def plot_training_history(hist):
     ax = df_vloss.plot(logy=True);
     df_loss.plot(ax=ax, grid=True, logy=True);
     # df_mape.plot(ax=ax, grid=True, logy=True);
-    P.savefig("{}/LSTM_training_history.png".format(FIG_PATH))
+    # P.savefig("{}/LSTM_training_history.png".format(FIG_PATH))
 
 
 def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor, split_point=None):
@@ -166,8 +167,8 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     P.ylabel('incidence')
     P.xticks(rotation=70)
     P.legend(['data', 'predicted'])
-    P.savefig("{}/lstm_{}.png".format('../saved_models', label), bbox_inches='tight', dpi=400)
-    P.show()
+    P.savefig("../saved_models/LSTM/{}/lstm_{}.png".format(STATE, label), bbox_inches='tight', dpi=400)
+    # P.show()
 
 
 def loss_and_metrics(model, Xtest, Ytest):
@@ -177,10 +178,24 @@ def loss_and_metrics(model, Xtest, Ytest):
 def evaluate(city, model, Xdata, Ydata, label):
     loss_and_metrics(model, Xdata, Ydata)
     metrics = model.evaluate(Xdata, Ydata, batch_size=1)
-    with open('metrics_{}.pkl'.format(label), 'wb') as f:
-        pickle.dump(metrics, f)
+    # with open('metrics_{}.pkl'.format(label), 'wb') as f:
+    #     pickle.dump(metrics, f)
     predicted = model.predict(Xdata, batch_size=1, verbose=1)
     return predicted, metrics
+
+
+def calculate_metrics(pred, ytrue, factor):
+    metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
+                                  'mean_squared_error', 'mean_squared_log_error',
+                                  'median_absolute_error', 'r2_score'))
+    for col in range(pred.shape[1]):
+        y = ytrue[:, col]*factor
+        p = pred[:, col]*factor
+        l = [mean_absolute_error(y, p), explained_variance_score(y, p),
+            mean_squared_error(y, p), mean_squared_log_error(y, p),
+            median_absolute_error(y, p), r2_score(y, p)]
+        metrics[col] = l
+    return metrics
 
 
 def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio=0.7, cluster=True, load=False):
@@ -203,6 +218,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
     else:
         target_col = list(data.columns).index('casos_est')
     norm_data, max_features = normalize_data(data)
+    factor = max_features[target_col]
 
     ##split test and train
     X_train, Y_train, X_test, Y_test = split_data(norm_data,
@@ -216,13 +232,17 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
     if load:
         model.load_weights("trained_{}_model.h5".format(city))
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
-    model.save('../saved_models/lstm_{}_epochs_{}.h5'.format(city, epochs))
+    # model.save('../saved_models/lstm_{}_epochs_{}.h5'.format(city, epochs))
 
     predicted_out, metrics_out = evaluate(city, model, X_test, Y_test, label='out_of_sample_{}'.format(city))
     predicted_in, metrics_in = evaluate(city, model, X_train, Y_train, label='in_sample_{}'.format(city))
 
+    metrics = calculate_metrics(predicted_out, Y_test, factor)
+    metrics.to_pickle('../saved_models/LSTM/{}/metrics_lstm_{}.pkl'.format(STATE, city))
+
     predicted = np.concatenate((predicted_in, predicted_out), axis=0)
-    factor = max_features[target_col]
+    with open('../saved_models/LSTM/{}/predicted_lstm_{}.pkl'.format(STATE, city), 'wb') as f:
+        pickle.dump(predicted, f)
 
     return predicted, X_test, Y_test, Y_train, factor
 
@@ -313,7 +333,7 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
 
     P.tight_layout()
     P.savefig('{}/cluster_{}.pdf'.format(FIG_PATH, geocode))#, bbox_inches='tight')
-    P.show()
+    # P.show()
 
     return None
 
@@ -355,7 +375,7 @@ if __name__ == "__main__":
     # single_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
     #                   hidden=HIDDEN, epochs=EPOCHS)
 
-    for STATE in ['RJ', 'PR', 'Ceará']:
+    for STATE in ['RJ']:
         state_prediction(STATE,PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
                          hidden=HIDDEN, epochs=EPOCHS)
 
