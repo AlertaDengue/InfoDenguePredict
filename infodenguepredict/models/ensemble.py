@@ -112,7 +112,7 @@ def ensemble_tpot(city, state, target, horizon, lookback):
     tgt = tgt_full[:len(X_train)]
     tgtt = tgt_full[len(X_train):]
 
-    model = TPOTRegressor(generations=20, population_size=100, verbosity=2)
+    model = TPOTRegressor(generations=20, population_size=100, verbosity=2, n_jobs=32)
     model.fit(X_train, target=tgt)
     model.export('tpot_{}_pipeline.py'.format(city))
     print(model.score(X_test[:len(tgtt)], tgtt))
