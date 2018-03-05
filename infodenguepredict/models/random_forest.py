@@ -71,7 +71,7 @@ def rolling_forecasts(data, target, window=12, horizon=1):
 
 
 def calculate_metrics(pred, ytrue):
-    return [mean_absolute_error(ytrue, pred), explained_variance_score(ytrue, pred),
+    return [mean_absolute_error(ytrue, pred, ), explained_variance_score(ytrue, pred),
             mean_squared_error(ytrue, pred), mean_squared_log_error(ytrue, pred),
             median_absolute_error(ytrue, pred), r2_score(ytrue, pred)]
 
