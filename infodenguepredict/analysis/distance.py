@@ -1,10 +1,12 @@
 import numpy as np;
 import pandas as pd
+import seaborn as sns
 import scipy.spatial.distance as spd
 from infodenguepredict.predict_settings import *
 # from scipy.signal import correlate
 
 from infodenguepredict.data.infodengue import get_alerta_table, combined_data
+
 
 def get_cities_from_state(state):
     alerta_table = get_alerta_table(state=state)
@@ -46,6 +48,7 @@ def cross_correlation(df_1, df_2, max_lag=5):
         corr_list.append(corr)
     return np.nanmean(corr_list)
 
+
 def fix_distance_matrix(dists):
     to_drop=[]
     for pos, col in enumerate(dists.columns):
@@ -54,6 +57,7 @@ def fix_distance_matrix(dists):
     dists.drop(to_drop, axis=1, inplace=True)
     dists.drop(to_drop, axis=0, inplace=True)
     return dists
+
 
 def distance(cities_list, cols):
     """
@@ -78,6 +82,7 @@ def distance(cities_list, cols):
 
     state_distances = fix_distance_matrix(state_distances)
     return state_distances
+
 
 if __name__ == "__main__":
     cities_list = get_cities_from_state(STATE)
