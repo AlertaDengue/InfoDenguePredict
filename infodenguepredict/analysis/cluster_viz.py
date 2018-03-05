@@ -39,12 +39,11 @@ def cluster_viz(geocode, clusters):
 
 
 if __name__ == "__main__":
-    state = 'RJ'
     renderer = hv.Store.renderers['bokeh']
     renderer.dpi = 600
 
     for STATE in ['RJ', 'PR', 'Ceará']:
-        clusters = pd.read_pickle('clusters_{}.pkl'.format(state))
+        clusters = pd.read_pickle('clusters_{}.pkl'.format(STATE))
 
         for c in clusters:
             if len(c) == 1:
