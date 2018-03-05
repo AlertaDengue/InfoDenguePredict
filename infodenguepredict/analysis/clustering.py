@@ -1,6 +1,6 @@
 import pickle
 import pandas as pd
-import numpy as np
+import seaborn as sns
 import scipy.cluster.hierarchy as hac
 import matplotlib.pyplot as plt
 
@@ -36,15 +36,20 @@ def matrix_cluster(cities_list, clusters):
 def create_cluster(state, cols, t):
     cities_list = alocate_data(state)
     dists = distance(cities_list, cols)
+
+    dists_full = dists + dists.T
+    sns_plot = sns.clustermap(dists_full, cmap="vlag")
+    sns_plot.savefig("cluster_corr_{}.png".format(state), dpi=400)
+
     Z, clusters = hierarchical_clustering(dists, t=t)
     print(clusters)
     matrix_cluster(cities_list=cities_list, clusters=clusters)
 
     with open('clusters_{}.pkl'.format(state), 'wb') as fp:
         pickle.dump(clusters, fp)
-
     print("{} clusters saved".format(state))
     name_ind = get_city_names(list(dists.index))
+
     return Z, name_ind
 
 
