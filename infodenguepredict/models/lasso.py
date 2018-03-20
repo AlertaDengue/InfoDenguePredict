@@ -40,6 +40,12 @@ def plot_prediction(preds, ydata, title, train_size):
     return None
 
 
+# def mape(ytrue, pred):
+#     if 0 in pred:
+#
+#     return np.mean(np.abs((ytrue - pred)/ytrue)) * 100
+
+
 def calculate_metrics(pred, ytrue):
     negs = np.where(pred < 0)[0]
     if len(negs) > 0:
@@ -51,6 +57,64 @@ def calculate_metrics(pred, ytrue):
     return [mean_absolute_error(ytrue, pred), explained_variance_score(ytrue, pred),
             mean_squared_error(ytrue, pred), msle,
             median_absolute_error(ytrue, pred), r2_score(ytrue, pred)]
+
+
+def lasso_single_prediction(city, state, lookback, horizon, predictors):
+    clusters = pd.read_pickle('../analysis/clusters_{}.pkl'.format(state))
+    data_full, group = get_cluster_data(geocode=city, clusters=clusters,
+                                        data_types=DATA_TYPES, cols=predictors)
+
+    target = 'casos_est_{}'.format(city)
+    casos_est_columns = ['casos_est_{}'.format(i) for i in group]
+    casos_columns = ['casos_{}'.format(i) for i in group]
+
+    data = data_full.drop(casos_columns, axis=1)
+    data_lag = build_lagged_features(data, lookback)
+    data_lag.dropna()
+    targets = {}
+    for d in range(1, horizon + 1):
+        if d == 1:
+            targets[d] = data_lag[target].shift(-(d - 1))
+        else:
+            targets[d] = data_lag[target].shift(-(d - 1))[:-(d - 1)]
+
+    X_data = data_lag.drop(casos_est_columns, axis=1)
+    X_train, X_test, y_train, y_test = train_test_split(X_data, data_lag[target],
+                                                        train_size=0.7, test_size=0.3, shuffle=False)
+
+    if sum(y_train)==0:
+        print('aaaah',city)
+        return None
+    city_name = get_city_names([city, 0])[0][1]
+    preds = np.empty((len(data_lag), horizon))
+    metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
+                                  'mean_squared_error', 'mean_squared_log_error',
+                                  'median_absolute_error', 'r2_score'))
+    for d in range(1, horizon + 1):
+        model = LassoLarsCV(max_iter=5, n_jobs=-1, normalize=False)
+
+        tgt = targets[d][:len(X_train)]
+        tgtt = targets[d][len(X_train):]
+        try:
+            model.fit(X_train, tgt)
+            print(city, 'done')
+        except ValueError as err:
+            print('-----------------------------------------------------')
+            print(city, 'ERRO')
+            print('-----------------------------------------------------')
+            break
+        pred = model.predict(X_data[:len(targets[d])])
+
+        dif = len(data_lag) - len(pred)
+        if dif > 0:
+            pred = list(pred) + ([np.nan] * dif)
+        preds[:, (d - 1)] = pred
+        pred_m = model.predict(X_test[:(len(tgtt))])
+        metrics[d] = calculate_metrics(pred_m, tgtt)
+
+    metrics.to_pickle('{}/{}/lasso_metrics_{}.pkl'.format('saved_models/lasso', state, city))
+    plot_prediction(preds, targets[1], city_name, len(X_train))
+    return None
 
 
 def lasso_state_prediction(state, lookback, horizon, predictors):
@@ -92,7 +156,13 @@ def lasso_state_prediction(state, lookback, horizon, predictors):
 
                 tgt = targets[d][:len(X_train)]
                 tgtt = targets[d][len(X_train):]
-                model.fit(X_train, tgt)
+                try:
+                    model.fit(X_train, tgt)
+                except ValueError as err:
+                    print('-----------------------------------------------------')
+                    print(city, 'ERRO')
+                    print('-----------------------------------------------------')
+                    break
                 pred = model.predict(X_data[:len(targets[d])])
 
                 dif = len(data_lag) - len(pred)
@@ -110,7 +180,8 @@ def lasso_state_prediction(state, lookback, horizon, predictors):
 # NOTE: Make sure that the class is labeled 'target' in the data file
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
 
-    for STATE in ['RJ', 'PR', 'Ceará']:
+    for STATE in ['RJ', 'PR', 'CE']:
         lasso_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
+    # lasso_single_prediction(4111704, 'PR', LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
