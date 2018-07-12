@@ -145,7 +145,7 @@ def plot_training_history(hist):
 
 def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor, split_point=None):
     """
-    Plot the model's predictions against dat
+    Plot the model's predictions against data
     :param predicted:
     :param Ydata:
     :param indice:
@@ -158,7 +158,7 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     df_predicted = pd.DataFrame(predicted).T
     ymax = max(predicted.max() * factor, Ydata.max() * factor)
     P.vlines(indice[split_point], 0, ymax, 'g', 'dashdot', lw=2)
-    P.text(indice[split_point + 2], 0.6*ymax, "Out of sample Predictions")
+    P.text(indice[split_point + 2], 0.6 * ymax, "Out of sample Predictions")
     for n in range(df_predicted.shape[1] - pred_window):
         P.plot(indice[n: n + pred_window], pd.DataFrame(Ydata.T)[n] * factor, 'k-')
         P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-.')
@@ -191,11 +191,11 @@ def calculate_metrics(pred, ytrue, factor):
                                   'mean_squared_error', 'mean_squared_log_error',
                                   'median_absolute_error', 'r2_score'))
     for col in range(pred.shape[1]):
-        y = ytrue[:, col]*factor
-        p = pred[:, col]*factor
+        y = ytrue[:, col] * factor
+        p = pred[:, col] * factor
         l = [mean_absolute_error(y, p), explained_variance_score(y, p),
-            mean_squared_error(y, p), mean_squared_log_error(y, p),
-            median_absolute_error(y, p), r2_score(y, p)]
+             mean_squared_error(y, p), mean_squared_log_error(y, p),
+             median_absolute_error(y, p), r2_score(y, p)]
         metrics[col] = l
     return metrics
 
@@ -227,7 +227,6 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
                                                   look_back=look_back, ratio=ratio,
                                                   predict_n=predict_n, Y_column=target_col)
     print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
-
 
     ## Run model
     model = build_model(hidden, X_train.shape[2], predict_n=predict_n, look_back=look_back)
@@ -277,7 +276,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
         ratio = 0.7
 
     predicted, X_test, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back,
-                                                              hidden, epochs, ratio=ratio)
+                                                                      hidden, epochs, ratio=ratio)
     plot_predicted_vs_data(predicted,
                            np.concatenate((Y_train, Y_test), axis=0),
                            indice[:],
@@ -307,7 +306,6 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
     indice = list(data.index)
     indice = [i.date() for i in indice]
 
-
     fig, axs = P.subplots(nrows=2, ncols=2, figsize=(50, 45))
 
     targets = zip(cluster, axs.flatten())
@@ -334,7 +332,7 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
         ax.legend(['data', 'predicted'])
 
     P.tight_layout()
-    P.savefig('{}/cluster_{}.pdf'.format(FIG_PATH, geocode))#, bbox_inches='tight')
+    P.savefig('{}/cluster_{}.pdf'.format(FIG_PATH, geocode))  # , bbox_inches='tight')
     # P.show()
 
     return None
@@ -345,7 +343,7 @@ def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, pr
 
     for cluster in clusters:
         data, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
-                                         data_types=DATA_TYPES, cols=predictors)
+                                       data_types=DATA_TYPES, cols=predictors)
         for city in cluster:
             if os.path.exists('../saved_models/LSTM/{}/predicted_lstm_{}.pkl'.format(state, city)):
                 continue
@@ -372,19 +370,18 @@ def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, pr
     return None
 
 
-
 if __name__ == "__main__":
     # K.set_epsilon(1e-5)
 
     # single_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
     #                   hidden=HIDDEN, epochs=EPOCHS)
 
-    for STATE in ['RJ']:
-        state_prediction(STATE,PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
-                         hidden=HIDDEN, epochs=EPOCHS)
+    # for STATE in ['RJ']:
+    #     state_prediction(STATE,PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
+    #                      hidden=HIDDEN, epochs=EPOCHS)
 
-
-    # cluster_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK, hidden=HIDDEN, epochs=epochs)
+    cluster_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK, hidden=HIDDEN,
+                       epochs=EPOCHS)
 
     ## Optimize Hyperparameters
     #
