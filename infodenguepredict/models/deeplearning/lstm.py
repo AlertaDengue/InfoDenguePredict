@@ -159,17 +159,31 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     ymax = max(predicted.max() * factor, Ydata.max() * factor)
     P.vlines(indice[split_point], 0, ymax, 'g', 'dashdot', lw=2)
     P.text(indice[split_point + 2], 0.6*ymax, "Out of sample Predictions")
+
+    # plot only the last prediction point
+    x = []
+    y = []
     for n in range(df_predicted.shape[1] - pred_window):
-        P.plot(indice[n: n + pred_window], pd.DataFrame(Ydata.T)[n] * factor, 'k-')
+        P.plot(indice[n:n + pred_window], pd.DataFrame(Ydata.T)[n] * factor, 'k-', alpha=0.7)
+        P.vlines(indice[n + pred_window], 0, df_predicted[n][3] * factor, 'b', alpha=0.2)
+        x.append(indice[n+pred_window])
+        y.append(df_predicted[n][3]*factor)
+    P.plot(x, y, 'r-', alpha=0.7)
+
+    # plot all predicted points
+    # P.plot(indice[pred_window:], pd.DataFrame(Ydata)[7] * factor, 'k-')
+    for n in range(df_predicted.shape[1] - pred_window):
+        P.plot(indice[n:n + pred_window], pd.DataFrame(Ydata.T)[n] * factor, 'k-', alpha=0.7)
         P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-.')
-        P.vlines(indice[n: n + pred_window], np.zeros(pred_window), df_predicted[n] * factor, 'b', alpha=0.2)
+        P.vlines(indice[n + pred_window], 0, df_predicted[n][-1] * factor, 'b', alpha=0.2)
+
     P.grid()
     P.title('Predictions for {}'.format(label))
     P.xlabel('time')
     P.ylabel('incidence')
     P.xticks(rotation=70)
     P.legend(['data', 'predicted'])
-    P.savefig("../saved_models/LSTM/{}/lstm_{}.png".format(STATE, label), bbox_inches='tight', dpi=400)
+    P.savefig("../saved_models/LSTM/{}/lstm_{}_ss.png".format(STATE, label), bbox_inches='tight', dpi=300)
     # P.show()
 
 
@@ -240,10 +254,10 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
     predicted_in, metrics_in = evaluate(city, model, X_train, Y_train, label='in_sample_{}'.format(city))
 
     metrics = calculate_metrics(predicted_out, Y_test, factor)
-    metrics.to_pickle('../saved_models/LSTM/{}/metrics_lstm_{}.pkl'.format(STATE, city))
+    metrics.to_pickle('../saved_models/LSTM/{}/metrics_lstm_{}_8pw.pkl'.format(STATE, city))
 
     predicted = np.concatenate((predicted_in, predicted_out), axis=0)
-    with open('../saved_models/LSTM/{}/predicted_lstm_{}.pkl'.format(STATE, city), 'wb') as f:
+    with open('../saved_models/LSTM/{}/predicted_lstm_{}_8pw.pkl'.format(STATE, city), 'wb') as f:
         pickle.dump(predicted, f)
 
     return predicted, X_test, Y_test, Y_train, factor
@@ -376,12 +390,12 @@ def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, pr
 if __name__ == "__main__":
     # K.set_epsilon(1e-5)
 
-    # single_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
-    #                   hidden=HIDDEN, epochs=EPOCHS)
+    single_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
+                      hidden=HIDDEN, epochs=EPOCHS)
 
-    for STATE in ['RJ']:
-        state_prediction(STATE,PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
-                         hidden=HIDDEN, epochs=EPOCHS)
+    # for STATE in ['PR']:
+    #     state_prediction(STATE,PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
+    #                      hidden=HIDDEN, epochs=EPOCHS)
 
 
     # cluster_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK, hidden=HIDDEN, epochs=epochs)
