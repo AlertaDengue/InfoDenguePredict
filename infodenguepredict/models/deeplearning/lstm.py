@@ -393,11 +393,6 @@ if __name__ == "__main__":
     single_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
                       hidden=HIDDEN, epochs=EPOCHS)
 
-    # for STATE in ['PR']:
-    #     state_prediction(STATE,PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
-    #                      hidden=HIDDEN, epochs=EPOCHS)
-
-
     # cluster_prediction(city, state, predictors, predict_n=prediction_window, look_back=LOOK_BACK, hidden=HIDDEN, epochs=epochs)
 
     ## Optimize Hyperparameters
