@@ -116,7 +116,7 @@ def loss_scatter(state, models, metric='mean_squared_error', predict_n=1):
                                                               config('PSQL_HOST'),
                                                               config('PSQL_DB')))
     if state == 'CE':
-        s = 'Ceará'
+        s = 'CE'
     if state == 'RJ':
         s = 'Rio de Janeiro'
     if state == 'PR':
