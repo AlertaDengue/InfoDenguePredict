@@ -128,6 +128,7 @@ def confidence_interval(model, Xtrain, Xtest):
     return ci
 
 
+# make predictions for a given city using the cluster series
 def rf_prediction(city, state, horizon, lookback):
     with open('../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
@@ -177,8 +178,9 @@ def rf_prediction(city, state, horizon, lookback):
     return preds, X_train, targets, data_lag
 
 
+# make predictions for all cities of a state without the cluster series
 def rf_single_state_prediction(state, lookback, horizon, predictors):
-    ##RF WITHOUT CLUSTER SERIES
+    # # RF WITHOUT CLUSTER SERIES
     if state == "CE":
         s = 'Ceará'
     else:
@@ -186,7 +188,7 @@ def rf_single_state_prediction(state, lookback, horizon, predictors):
     cities = list(get_cities_from_state(s))
 
     for city in cities:
-        if os.path.isfile('/home/elisa/Documentos/InfoDenguePredict/infodenguepredict/models/saved_models/random_forest_no_cluster/{}/rf_metrics_{}.pkl'.format(state, city)):
+        if os.path.isfile('/saved_models/random_forest_no_cluster/{}/rf_metrics_{}.pkl'.format(state, city)):
             print(city, 'done')
             continue
         data = combined_data(city, DATA_TYPES)
@@ -233,6 +235,7 @@ def rf_single_state_prediction(state, lookback, horizon, predictors):
     return None
 
 
+# make predictions for all cities of a state using the cluster series
 def rf_state_prediction(state, lookback, horizon, predictors):
     clusters = pd.read_pickle('../analysis/clusters_{}.pkl'.format(state))
 
