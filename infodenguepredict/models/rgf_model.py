@@ -3,13 +3,19 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-from sklearn.linear_model import LassoLarsCV
+from rgf.sklearn import RGFRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import *
 
-from infodenguepredict.data.infodengue import get_cluster_data, get_city_names
+from infodenguepredict.data.infodengue import get_cluster_data, get_city_names, build_multicity_dataset, get_alerta_table
 from infodenguepredict.models.random_forest import build_lagged_features
 from infodenguepredict.predict_settings import *
+
+
+def get_cities_from_state(state):
+    alerta_table = get_alerta_table(state=state)
+    cities_list = alerta_table.municipio_geocodigo.unique()
+    return cities_list
 
 
 def plot_prediction(preds, ydata, title, train_size):
@@ -36,7 +42,7 @@ def plot_prediction(preds, ydata, title, train_size):
     plt.xticks(rotation=70)
     plt.legend(['data', 'predicted'])
 
-    plt.savefig('{}/{}/lasso_{}.png'.format('saved_models/lasso', STATE, title), dpi=300)
+    plt.savefig('{}/{}/rgf_{}.png'.format('saved_models/rgf', STATE, title), dpi=300)
     return None
 
 
@@ -53,14 +59,14 @@ def calculate_metrics(pred, ytrue):
             median_absolute_error(ytrue, pred), r2_score(ytrue, pred)]
 
 
-def lasso_state_prediction(state, lookback, horizon, predictors):
+def rgf_state_prediction(state, lookback, horizon, predictors):
     clusters = pd.read_pickle('../analysis/clusters_{}.pkl'.format(state))
 
     for cluster in clusters:
         data_full, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
                                             data_types=DATA_TYPES, cols=predictors)
         for city in cluster:
-            if os.path.isfile('saved_models/lasso/{}/lasso_metrics_{}.pkl'.format(state, city)):
+            if os.path.isfile('saved_models/rgf/{}/rgf_metrics_{}.pkl'.format(state, city)):
                 print(city, 'done')
                 continue
 
@@ -88,11 +94,21 @@ def lasso_state_prediction(state, lookback, horizon, predictors):
                                           'mean_squared_error', 'mean_squared_log_error',
                                           'median_absolute_error', 'r2_score'))
             for d in range(1, horizon + 1):
-                model = LassoLarsCV(max_iter=15, n_jobs=-1, normalize=False)
+                model = RGFRegressor(max_leaf=300,
+                                     algorithm="RGF_Sib",
+                                     test_interval=100,
+                                     loss="LS",
+                                     verbose=False)
 
                 tgt = targets[d][:len(X_train)]
                 tgtt = targets[d][len(X_train):]
-                model.fit(X_train, tgt)
+                try:
+                    model.fit(X_train, tgt)
+                except ValueError as err:
+                    print('-----------------------------------------------------')
+                    print(city, 'ERRO')
+                    print('-----------------------------------------------------')
+                    break
                 pred = model.predict(X_data[:len(targets[d])])
 
                 dif = len(data_lag) - len(pred)
@@ -102,7 +118,7 @@ def lasso_state_prediction(state, lookback, horizon, predictors):
                 pred_m = model.predict(X_test[:(len(tgtt))])
                 metrics[d] = calculate_metrics(pred_m, tgtt)
 
-            metrics.to_pickle('{}/{}/lasso_metrics_{}.pkl'.format('saved_models/lasso', state, city))
+            metrics.to_pickle('{}/{}/rgf_metrics_{}.pkl'.format('saved_models/rgf', state, city))
             plot_prediction(preds, targets[1], city_name, len(X_train))
             # plt.show()
     return None
@@ -110,7 +126,7 @@ def lasso_state_prediction(state, lookback, horizon, predictors):
 # NOTE: Make sure that the class is labeled 'target' in the data file
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
 
-    for STATE in ['RJ', 'PR', 'Ceará']:
-        lasso_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
+    for STATE in ['RJ', 'PR', 'CE']:
+        rgf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)

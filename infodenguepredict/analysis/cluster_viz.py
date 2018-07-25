@@ -3,7 +3,7 @@ import pickle
 import re
 import holoviews as hv
 
-from infodenguepredict.data.infodengue import  get_cluster_data, get_city_names
+from infodenguepredict.data.infodengue import get_cluster_data, get_city_names
 from infodenguepredict.predict_settings import *
 
 hv.extension('bokeh')
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     renderer = hv.Store.renderers['bokeh']
     renderer.dpi = 600
 
-    for STATE in ['RJ', 'PR', 'Ceará']:
+    for STATE in ['RJ', 'PR', 'CE']:
         clusters = pd.read_pickle('clusters_{}.pkl'.format(STATE))
 
         for c in clusters:
