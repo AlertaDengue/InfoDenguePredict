@@ -199,7 +199,7 @@ def get_cluster_data(geocode, clusters, data_types, cols=None):
     full_data = pd.DataFrame()
     for city_code in cluster:
         tmp = combined_data(city_code, data_types)
-        if cols:
+        if cols is not None:
             tmp = tmp[cols]
         tmp.columns = ['{}_{}'.format(col, city_code) for col in tmp.columns.values]
         full_data = pd.concat([tmp, full_data], axis=1).fillna(method='ffill')

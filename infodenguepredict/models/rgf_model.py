@@ -3,10 +3,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-from sklearn.linear_model import LassoLarsCV
+from rgf.sklearn import RGFRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import *
-from rgf.sklearn import RGFRegressor
 
 from infodenguepredict.data.infodengue import get_cluster_data, get_city_names, build_multicity_dataset, get_alerta_table
 from infodenguepredict.models.random_forest import build_lagged_features
