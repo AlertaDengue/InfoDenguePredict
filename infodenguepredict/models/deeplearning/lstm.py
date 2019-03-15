@@ -3,6 +3,7 @@ import pandas as pd
 import pickle
 import math
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # Tesla K40
 
 from matplotlib import pyplot as P
 from keras.layers.core import Dense, Activation, Dropout
@@ -11,9 +12,9 @@ from keras.models import Sequential
 from keras.utils.vis_utils import plot_model
 from keras.callbacks import TensorBoard
 from keras import backend as K
-from hyperas.distributions import uniform, choice
-from hyperas import optim
-from hyperopt import Trials, STATUS_OK, tpe
+# from hyperas.distributions import uniform, choice
+# from hyperas import optim
+# from hyperopt import Trials, STATUS_OK, tpe
 from sklearn.metrics import *
 
 from time import time
@@ -21,41 +22,6 @@ from infodenguepredict.data.infodengue import combined_data, get_cluster_data, r
 from infodenguepredict.models.deeplearning.preprocessing import split_data, normalize_data
 from infodenguepredict.predict_settings import *
 
-
-def optimize_model(x_train, y_train, x_test, y_test, features):
-    model = Sequential()
-
-    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=({{choice([2, 3, 4])}}, features), stateful=True,
-                   batch_input_shape=(1, {{choice([2, 3, 4])}}, features),
-                   return_sequences=True,
-                   dropout={{uniform(0, 1)}},
-                   recurrent_dropout={{uniform(0, 1)}}
-                   ))
-    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=({{choice([2, 3, 4])}}, features), stateful=True,
-                   batch_input_shape=(1, {{choice([2, 3, 4])}}, features),
-                   return_sequences=True,
-                   dropout={{uniform(0, 1)}},
-                   recurrent_dropout={{uniform(0, 1)}}
-                   ))
-
-    model.add(LSTM({{choice([4, 8, 16])}}, input_shape=({{choice([2, 3, 4])}}, features), stateful=True,
-                   batch_input_shape=(1, {{choice([2, 3, 4])}}, features),
-                   dropout={{uniform(0, 1)}},
-                   recurrent_dropout={{uniform(0, 1)}}
-                   ))
-
-    model.add(Dense(PREDICTION_WINDOW, activation='relu'))
-
-    start = time()
-    model.compile(loss="msle", optimizer="rmsprop", )
-    model.fit(x_train, y_train,
-              batch_size=1,
-              nb_epoch=1,
-              validation_split=0.05,
-              verbose=0,
-              )
-    loss = model.evaluate(x_test, y_test, batch_size=1)
-    return {'loss': loss, 'status': STATUS_OK, 'model': model}
 
 
 def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
@@ -122,10 +88,11 @@ def train(model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwr
                      nb_epoch=epochs,
                      validation_split=0.15,
                      verbose=1,
-                     callbacks=[TB_callback])
-    # with open('history_{}.pkl'.format(geocode), 'wb') as f:
-    #     pickle.dump(hist.history, f)
-    # model.save_weights('trained_{}_model.h5'.format(geocode), overwrite=overwrite)
+                     # callbacks=[TB_callback]
+                     )
+    with open('history_{}.pkl'.format(geocode), 'wb') as f:
+        pickle.dump(hist.history, f)
+    model.save_weights('trained_{}_model.h5'.format(geocode), overwrite=overwrite)
     return hist
 
 
@@ -146,8 +113,8 @@ def plot_training_history(hist):
 def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor, split_point=None):
     """
     Plot the model's predictions against data
-    :param predicted:
-    :param Ydata:
+    :param predicted: model predictions
+    :param Ydata: observed data
     :param indice:
     :param label:
     :param pred_window:
@@ -166,8 +133,8 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     for n in range(df_predicted.shape[1] - pred_window):
         P.plot(indice[n:n + pred_window], pd.DataFrame(Ydata.T)[n] * factor, 'k-', alpha=0.7)
         P.vlines(indice[n + pred_window], 0, df_predicted[n][3] * factor, 'b', alpha=0.2)
-        x.append(indice[n+pred_window])
-        y.append(df_predicted[n][3]*factor)
+        x.append(indice[n + pred_window])
+        y.append(df_predicted[n][3] * factor)
     P.plot(x, y, 'r-', alpha=0.7)
 
     # plot all predicted points
@@ -175,7 +142,10 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     for n in range(df_predicted.shape[1] - pred_window):
         P.plot(indice[n:n + pred_window], pd.DataFrame(Ydata.T)[n] * factor, 'k-', alpha=0.7)
         P.plot(indice[n: n + pred_window], df_predicted[n] * factor, 'r-.')
-        P.vlines(indice[n + pred_window], 0, df_predicted[n][-1] * factor, 'b', alpha=0.2)
+        try:
+            P.vlines(indice[n + pred_window], 0, df_predicted[n].values[-1] * factor, 'b', alpha=0.2)
+        except IndexError as e:
+            print(indice.shape, n, df_predicted.shape)
 
     P.grid()
     P.title('Predictions for {}'.format(label))
@@ -290,7 +260,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
         ratio = 0.7
 
     predicted, X_test, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back,
-                                                                      hidden, epochs, ratio=ratio)
+                                                                      hidden, epochs, ratio=ratio, load=True)
     plot_predicted_vs_data(predicted,
                            np.concatenate((Y_train, Y_test), axis=0),
                            indice[:],
@@ -326,7 +296,8 @@ def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden,
     for (city, ax) in targets:
         print(city)
         city_name = get_city_names([city, 0])[0][1]
-        predicted, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back, hidden, epochs)
+        predicted, X_test, Y_test, Y_train, factor = train_evaluate_model(city, data, predict_n, look_back, hidden,
+                                                                          epochs)
 
         ## plot
         Ydata = np.concatenate((Y_train, Y_test), axis=0)
@@ -390,8 +361,8 @@ if __name__ == "__main__":
     single_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK,
                       hidden=HIDDEN, epochs=EPOCHS)
 
-    cluster_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK, hidden=HIDDEN,
-                       epochs=EPOCHS)
+    # cluster_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK, hidden=HIDDEN,
+    #                    epochs=EPOCHS)
 
     ## Optimize Hyperparameters
     #

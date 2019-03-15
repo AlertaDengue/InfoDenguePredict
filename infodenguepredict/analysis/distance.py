@@ -61,7 +61,7 @@ def fix_distance_matrix(dists):
 
 def distance(cities_list, cols):
     """
-    returns the correlation distance matrix for a list of cities.
+    Returns the correlation distance matrix for a list of cities.
     :param cities_list: List of geocodes
     :param cols: columns to calculate the correlation
     :return:
