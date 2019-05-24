@@ -8,7 +8,7 @@ import pandas as pd
 import random
 from sqlalchemy import create_engine
 from decouple import config
-
+import pickle
 
 db_engine = create_engine("postgresql://{}:{}@{}/{}".format(
     config('PSQL_USER'),
@@ -16,6 +16,7 @@ db_engine = create_engine("postgresql://{}:{}@{}/{}".format(
     config('PSQL_HOST'),
     config('PSQL_DB')
 ))
+
 
 def get_alerta_table(municipio=None, state=None):
     """
@@ -33,7 +34,8 @@ def get_alerta_table(municipio=None, state=None):
                                                               config('PSQL_HOST'),
                                                               config('PSQL_DB')))
     if municipio is None:
-        sql = 'select h.* from "Municipio"."Historico_alerta" h JOIN "Dengue_global"."Municipio" m ON h.municipio_geocodigo=m.geocodigo where m.uf=\'{}\';'.format(state)
+        sql = 'select h.* from "Municipio"."Historico_alerta" h JOIN "Dengue_global"."Municipio" m ON h.municipio_geocodigo=m.geocodigo where m.uf=\'{}\';'.format(
+            state)
         # if state == 'RJ':
         #     sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>3300000 and municipio_geocodigo<4000000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
         # elif state == 'ES':
@@ -133,7 +135,8 @@ def get_city_names(geocodigos):
     :return:
     """
     with db_engine.connect() as conexao:
-        res = conexao.execute('select geocodigo, nome from "Dengue_global"."Municipio" WHERE geocodigo in {};'.format(tuple(geocodigos)))
+        res = conexao.execute(
+            'select geocodigo, nome from "Dengue_global"."Municipio" WHERE geocodigo in {};'.format(tuple(geocodigos)))
         res = res.fetchall()
 
     return res
@@ -185,7 +188,7 @@ def combined_data(municipio, data_types):
     return full_data
 
 
-def get_cluster_data(geocode, clusters, data_types, cols=None):
+def get_cluster_data(geocode, clusters, data_types, cols=None, save=False):
     """
     Returns the concatenated wide format table of all the variables in the cluster of a city.
     :param geocode: 7-digit geocode
@@ -203,6 +206,9 @@ def get_cluster_data(geocode, clusters, data_types, cols=None):
             tmp = tmp[cols]
         tmp.columns = ['{}_{}'.format(col, city_code) for col in tmp.columns.values]
         full_data = pd.concat([tmp, full_data], axis=1).fillna(method='ffill')
+        if save:
+            full_data.to_csv("{}_cluster.csv.gz".format(geocode))
+            pickle.dump(cluster, open('{}_cluster.pkl'.format(geocode), 'wb'))
 
     return full_data, cluster
 
