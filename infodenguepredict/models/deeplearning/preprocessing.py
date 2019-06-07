@@ -25,7 +25,7 @@ def split_data(df, look_back=12, ratio=0.8, predict_n=5, Y_column=0):
         data[i, :, :] = df[i: look_back + i + predict_n, :]
     # train_size = int(n_ts * ratio)
     train_size = int(df.shape[0] * ratio) - look_back
-    print(train_size)
+    print("train size: ", train_size)
 
     # We are predicting only column 0
     X_train = data[:train_size, :look_back, :]
