@@ -9,6 +9,7 @@ import forestci as fci
 import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_cluster_data, get_city_names, combined_data, get_alerta_table
 from infodenguepredict.predict_settings import *
+from skgarden import RandomForestQuantileRegressor
 
 
 def get_cities_from_state(state):
@@ -18,13 +19,11 @@ def get_cities_from_state(state):
 
 
 def build_model(**kwargs):
-    model = RandomForestRegressor(max_depth=None, random_state=0, n_jobs=-1,
-                                  n_estimators=1000,
-                                  warm_start=True)
-    # model = ExtraTreesRegressor(max_depth=None, random_state=0, n_jobs=-1,
-    #                               n_estimators=1000,
-    #                               warm_start=True)
-
+    model = RandomForestQuantileRegressor(random_state=0, min_samples_split=10, n_estimators=1000, n_jobs=-1,
+                                          warm_start=False)
+    # model = RandomForestRegressor(max_depth=None, random_state=0, n_jobs=-1,
+    #                             n_estimators=1000,
+    #                              warm_start=True)
     return model
 
 
@@ -69,8 +68,6 @@ def rolling_forecasts(data, target, window=12, horizon=1):
     """
     model = build_model()
     model.fit(data.values, target)
-    # for i in range(0, ldf.shape[0] - window):
-    #     model.fit(ldf.values[i:i + window, :], ldf['target'].values[i:i + window])
 
     return model
 
@@ -81,9 +78,9 @@ def calculate_metrics(pred, ytrue):
             median_absolute_error(ytrue, pred), r2_score(ytrue, pred)]
 
 
-def plot_prediction(preds, ydata, title, train_size, path='random_forest'):
+def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='quantile_forest'):
     plt.clf()
-    plt.plot(ydata, 'k-')
+    plt.plot(ydata, 'k-', label='data')
 
     point = ydata.index[train_size]
 
@@ -103,41 +100,35 @@ def plot_prediction(preds, ydata, title, train_size, path='random_forest'):
     # for figure with only the last prediction point (single red line)
     x = []
     y = []
+    y25 = []
+    y975 = []
     for n in llist:
-        plt.vlines(ydata.index[n + pred_window], 0, preds[n][-1], 'b', alpha=0.2)
-        x.append(ydata.index[n+pred_window])
+        # plt.vlines(ydata.index[n + pred_window], 0, preds[n][-1], 'b', alpha=0.2)
+        x.append(ydata.index[n + pred_window])
+
         y.append(preds[n][-1])
-    plt.plot(x, y, 'r-', alpha=0.7)
+        y25.append(preds25[n][-1])
+        y975.append(preds975[n][-1])
+    plt.plot(x, y, 'r-', alpha=0.7, label='median prediction')
+    plt.plot(x, y25, 'g-', alpha=0.7)
+    plt.plot(x, y975, 'g-', alpha=0.7)
+    # plt.fill_between(np.array(x), np.array(y25), np.array(y975), 'g', alpha=0.3)
 
     plt.text(point, 0.6 * max_val, "Out of sample Predictions")
     plt.grid()
     plt.ylabel('indices')
-    plt.legend(loc=0)
     plt.title('Predictions for {}'.format(title))
     plt.xticks(rotation=70)
-    plt.legend(['data', 'predicted'])
+    plt.legend(loc=0)
+    if not os.path.exists('saved_models/' + path + '/' + STATE):
+        os.mkdir('saved_models/' + path + '/' + STATE)
 
     plt.savefig('saved_models/{}/{}/rf_{}_ss.png'.format(path, STATE, title), dpi=300)
     plt.show()
     return None
 
 
-def confidence_interval(model, Xtrain, Xtest):
-    inbag = fci.calc_inbag(Xtrain.shape[0], model)
-    ci = fci.random_forest_error(model, Xtrain.values, Xtest.values, inbag=inbag)
-    return ci
-
-
-
-def rf_prediction(city, state, horizon, lookback):
-    """
-    make predictions for a given city using the cluster series
-    :param city: city name
-    :param state: State symbol
-    :param horizon: number of steps ahead to predict
-    :param lookback: number steps of history to use as predictors
-    :return:
-    """
+def qf_prediction(city, state, horizon, lookback):
     with open('../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
     data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
@@ -162,6 +153,8 @@ def rf_prediction(city, state, horizon, lookback):
 
     city_name = get_city_names([city, 0])[0][1]
     preds = np.empty((len(data_lag), horizon))
+    preds25 = np.empty((len(data_lag), horizon))
+    preds975 = np.empty((len(data_lag), horizon))
     metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
                                   'mean_squared_error', 'mean_squared_log_error',
                                   'median_absolute_error', 'r2_score'))
@@ -170,32 +163,29 @@ def rf_prediction(city, state, horizon, lookback):
         tgtt = targets[d][len(X_train):]
 
         model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
-        pred = model.predict(X_data[:len(targets[d])])
+        pred25 = model.predict(X_data[:len(targets[d])], quantile=0.025)
+        pred = model.predict(X_data[:len(targets[d])], quantile=0.5)
+        pred975 = model.predict(X_data[:len(targets[d])], quantile=0.975)
 
         dif = len(data_lag) - len(pred)
         if dif > 0:
             pred = list(pred) + ([np.nan] * dif)
+            pred25 = list(pred25) + ([np.nan] * dif)
+            pred975 = list(pred975) + ([np.nan] * dif)
         preds[:, (d - 1)] = pred
+        preds25[:, (d - 1)] = pred25
+        preds975[:, (d - 1)] = pred975
 
-        pred_m = model.predict(X_test[(d - 1):])
+        pred_m = model.predict(X_test[(d - 1):], quantile=0.5)
         metrics[d] = calculate_metrics(pred_m, tgtt)
 
-    metrics.to_pickle('{}/{}/rf_metrics_{}.pkl'.format('saved_models/random_forest', state, city))
-    plot_prediction(preds, targets[1], city_name, len(X_train))
+    metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest', state, city))
+    plot_prediction(preds, preds25, preds975, targets[1], city_name, len(X_train))
 
-    return preds, X_train, targets, data_lag
+    return preds, preds25, preds975, X_train, targets, data_lag
 
 
-
-def rf_single_state_prediction(state, lookback, horizon, predictors):
-    """
-    make predictions for all cities of a state without the cluster series
-    :param state: State symbol
-    :param lookback: number of steps of history to use as predictors
-    :param horizon: number of steps  to predict
-    :param predictors: list of predictors to use
-    :return:
-    """
+def qf_single_state_prediction(state, lookback, horizon, predictors):
     # # RF WITHOUT CLUSTER SERIES
     if state == "CE":
         s = 'Ceará'
@@ -204,7 +194,7 @@ def rf_single_state_prediction(state, lookback, horizon, predictors):
     cities = list(get_cities_from_state(s))
 
     for city in cities:
-        if os.path.isfile('/saved_models/random_forest_no_cluster/{}/rf_metrics_{}.pkl'.format(state, city)):
+        if os.path.isfile('/saved_models/quantile_forest_no_cluster/{}/qf_metrics_{}.pkl'.format(state, city)):
             print(city, 'done')
             continue
         data = combined_data(city, DATA_TYPES)
@@ -235,7 +225,7 @@ def rf_single_state_prediction(state, lookback, horizon, predictors):
             tgtt = targets[d][len(X_train):]
 
             model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
-            pred = model.predict(X_data[:len(targets[d])])
+            pred = model.predict(X_data[:len(targets[d])], quantile=quantile)
 
             dif = len(data_lag) - len(pred)
             if dif > 0:
@@ -245,29 +235,21 @@ def rf_single_state_prediction(state, lookback, horizon, predictors):
             pred_m = model.predict(X_test[(d - 1):])
             metrics[d] = calculate_metrics(pred_m, tgtt)
 
-        metrics.to_pickle('{}/{}/rf_metrics_{}.pkl'.format('saved_models/random_forest_no_cluster', state, city))
+        metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest_no_cluster', state, city))
         plot_prediction(preds, targets[1], city_name, len(X_train))
         # plt.show()
-    return None
 
 
-
-def rf_state_prediction(state, lookback, horizon, predictors):
-    """
-    make predictions for all cities of a state using the cluster series
-    :param state: State Symbol
-    :param lookback: number of steps of history to use as predictors
-    :param horizon: number of steps  to predict
-    :param predictors: list of predictors to use
-    :return:
-    """
+def qf_state_prediction(state, lookback, horizon, predictors):
     clusters = pd.read_pickle('../analysis/clusters_{}.pkl'.format(state))
 
     for cluster in clusters:
         data_full, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
-                                       data_types=DATA_TYPES, cols=predictors)
+                                            data_types=DATA_TYPES, cols=predictors)
         for city in cluster:
-            if os.path.isfile('/home/elisa/Documentos/InfoDenguePredict/infodenguepredict/models/saved_models/{}/rf_metrics_{}.pkl'.format(state, city)):
+            if os.path.isfile(
+                    '/home/elisa/Documentos/InfoDenguePredict/infodenguepredict/models/saved_models/{}/qf_metrics_{}.pkl'.format(
+                        state, city)):
                 print('done')
                 continue
 
@@ -299,27 +281,26 @@ def rf_state_prediction(state, lookback, horizon, predictors):
                 tgtt = targets[d][len(X_train):]
 
                 model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
-                pred = model.predict(X_data[:len(targets[d])])
+                pred = model.predict(X_data[:len(targets[d])], quantile=quantile)
 
                 dif = len(data_lag) - len(pred)
                 if dif > 0:
                     pred = list(pred) + ([np.nan] * dif)
                 preds[:, (d - 1)] = pred
 
-                pred_m = model.predict(X_test[(d-1):])
+                pred_m = model.predict(X_test[(d - 1):])
                 metrics[d] = calculate_metrics(pred_m, tgtt)
 
-            metrics.to_pickle('{}/{}/rf_metrics_{}.pkl'.format('saved_models/random_forest', state, city))
+            metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest', state, city))
             plot_prediction(preds, targets[1], city_name, len(X_train))
             # plt.show()
-    return None
 
 
 if __name__ == "__main__":
     # target = 'casos_est_{}'.format(CITY)
     # preds = qf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
     # for STATE in ['RJ', 'PR', 'CE']:
-        # qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
-        # qf_single_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
+    # qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
+    # qf_single_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
 
-    rf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW, lookback=LOOK_BACK)
+    qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW, lookback=LOOK_BACK)

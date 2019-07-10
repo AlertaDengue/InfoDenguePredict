@@ -21,3 +21,5 @@ pycast
 apache-airflow
 forestci
 holoviews
+scikit-garden
+duecredit
