@@ -109,10 +109,10 @@ def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='qu
         y.append(preds[n][-1])
         y25.append(preds25[n][-1])
         y975.append(preds975[n][-1])
-    plt.plot(x, y, 'r-', alpha=0.7, label='median prediction')
-    plt.plot(x, y25, 'g-', alpha=0.7)
-    plt.plot(x, y975, 'g-', alpha=0.7)
-    # plt.fill_between(np.array(x), np.array(y25), np.array(y975), 'g', alpha=0.3)
+    plt.plot(x, y, 'r-', alpha=0.5, label='median prediction')
+    # plt.plot(x, y25, 'b-', alpha=0.3)
+    # plt.plot(x, y975, 'b-', alpha=0.3)
+    plt.fill_between(x, np.array(y25), np.array(y975), color='b', alpha=0.3)
 
     plt.text(point, 0.6 * max_val, "Out of sample Predictions")
     plt.grid()
@@ -163,9 +163,9 @@ def qf_prediction(city, state, horizon, lookback):
         tgtt = targets[d][len(X_train):]
 
         model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
-        pred25 = model.predict(X_data[:len(targets[d])], quantile=0.025)
-        pred = model.predict(X_data[:len(targets[d])], quantile=0.5)
-        pred975 = model.predict(X_data[:len(targets[d])], quantile=0.975)
+        pred25 = model.predict(X_data[:len(targets[d])], quantile=2.5)
+        pred = model.predict(X_data[:len(targets[d])], quantile=50)
+        pred975 = model.predict(X_data[:len(targets[d])], quantile=97.5)
 
         dif = len(data_lag) - len(pred)
         if dif > 0:

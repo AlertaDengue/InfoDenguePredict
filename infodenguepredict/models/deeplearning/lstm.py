@@ -271,7 +271,7 @@ def evaluate(city, model, Xdata, Ydata, label, uncertainty=True):
     # with open('metrics_{}.pkl'.format(label), 'wb') as f:
     #     pickle.dump(metrics, f)
     if uncertainty:
-        predicted  = []
+        predicted  = [model.predict(Xdata, batch_size=1, verbose=1) for i in range(1000)]
     else:
         predicted = model.predict(Xdata, batch_size=1, verbose=1)
     return predicted, metrics
