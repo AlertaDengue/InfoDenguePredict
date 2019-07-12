@@ -3,6 +3,7 @@ import pandas as pd
 import pickle
 import math
 import os
+import shap
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Tesla K40
 
@@ -41,51 +42,50 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     """
     inp = keras.Input(shape=(look_back, features), batch_shape=(batch_size, look_back, features))
     x = LSTM(
-            hidden,
-            input_shape=(look_back, features),
-            stateful=True,
-            batch_input_shape=(batch_size, look_back, features),
-            return_sequences=True,
-            # activation='relu',
-            dropout=0,
-            recurrent_dropout=0,
-            implementation=2,
-            unit_forget_bias=True,
-        )(inp, training=True)
+        hidden,
+        input_shape=(look_back, features),
+        stateful=True,
+        batch_input_shape=(batch_size, look_back, features),
+        return_sequences=True,
+        # activation='relu',
+        dropout=0,
+        recurrent_dropout=0,
+        implementation=2,
+        unit_forget_bias=True,
+    )(inp, training=True)
     x = Dropout(0.2)(x, training=True)
     x = LSTM(
-            hidden,
-            input_shape=(look_back, features),
-            stateful=True,
-            batch_input_shape=(batch_size, look_back, features),
-            return_sequences=True,
-            # activation='relu',
-            dropout=0,
-            recurrent_dropout=0,
-            implementation=2,
-            unit_forget_bias=True,
-        )(x, training=True)
+        hidden,
+        input_shape=(look_back, features),
+        stateful=True,
+        batch_input_shape=(batch_size, look_back, features),
+        return_sequences=True,
+        # activation='relu',
+        dropout=0,
+        recurrent_dropout=0,
+        implementation=2,
+        unit_forget_bias=True,
+    )(x, training=True)
     x = Dropout(0.2)(x, training=True)
     x = LSTM(
-            hidden,
-            input_shape=(look_back, features),
-            stateful=True,
-            batch_input_shape=(batch_size, look_back, features),
-            # activation='relu',
-            dropout=0,
-            recurrent_dropout=0,
-            implementation=2,
-            unit_forget_bias=True,
-        )(x, training=True)
+        hidden,
+        input_shape=(look_back, features),
+        stateful=True,
+        batch_input_shape=(batch_size, look_back, features),
+        # activation='relu',
+        dropout=0,
+        recurrent_dropout=0,
+        implementation=2,
+        unit_forget_bias=True,
+    )(x, training=True)
     x = Dropout(0.2)(x, training=True)
     out = Dense(
-            predict_n,
-            activation="relu",
-            kernel_initializer="random_uniform",
-            bias_initializer="zeros",
-        )(x)
+        predict_n,
+        activation="relu",
+        kernel_initializer="random_uniform",
+        bias_initializer="zeros",
+    )(x)
     model = keras.Model(inp, out)
-
 
     # model = Sequential()
     #
@@ -204,27 +204,23 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     """
 
     P.clf()
-    df_predicted = pd.DataFrame(predicted).T
+    if len(predicted.shape) == 2:
+        df_predicted = pd.DataFrame(predicted).T
+        df_predicted25 = None
+    else:
+        df_predicted = pd.DataFrame(np.percentile(predicted, 50, axis=2))
+        df_predicted25 = pd.DataFrame(np.percentile(predicted, 2.5, axis=2))
+        df_predicted975 = pd.DataFrame(np.percentile(predicted, 97.5, axis=2))
     ymax = max(predicted.max() * factor, Ydata.max() * factor)
     P.vlines(indice[split_point], 0, ymax, "g", "dashdot", lw=2)
     P.text(indice[split_point + 2], 0.6 * ymax, "Out of sample Predictions")
+    # plot only the last (furthest) prediction point
+    P.plot(indice[7:], Ydata[:, -1] * factor, 'k-', alpha=0.7, label='data')
+    P.plot(indice[7:], df_predicted[df_predicted.columns[-1]]*factor, 'r-', alpha=0.5, label='median')
+    P.fill_between(indice[7:], df_predicted25[df_predicted25.columns[-1]]*factor, df_predicted975[df_predicted975.columns[-1]]*factor,
+                   color='b', alpha=0.3)
 
-    # plot only the last prediction point
-    x = []
-    y = []
-    for n in range(df_predicted.shape[1] - pred_window):
-        P.plot(
-            indice[n: n + pred_window],
-            pd.DataFrame(Ydata.T)[n] * factor,
-            "k-",
-            alpha=0.7,
-        )
-        P.vlines(
-            indice[n + pred_window], 0, df_predicted[n][3] * factor, "b", alpha=0.2
-        )
-        x.append(indice[n + pred_window])
-        y.append(df_predicted[n][3] * factor)
-    P.plot(x, y, "r-", alpha=0.7)
+
 
     # plot all predicted points
     # P.plot(indice[pred_window:], pd.DataFrame(Ydata)[7] * factor, 'k-')
@@ -265,13 +261,13 @@ def loss_and_metrics(model, Xtest, Ytest):
     print(model.evaluate(Xtest, Ytest, batch_size=1))
 
 
-def evaluate(city, model, Xdata, Ydata, label, uncertainty=True):
+def evaluate(city, model, Xdata, Ydata, label, uncertainty=False):
     loss_and_metrics(model, Xdata, Ydata)
     metrics = model.evaluate(Xdata, Ydata, batch_size=1)
     # with open('metrics_{}.pkl'.format(label), 'wb') as f:
     #     pickle.dump(metrics, f)
     if uncertainty:
-        predicted  = [model.predict(Xdata, batch_size=1, verbose=1) for i in range(1000)]
+        predicted = np.stack([model.predict(Xdata, batch_size=1, verbose=1) for i in range(100)], axis=2)
     else:
         predicted = model.predict(Xdata, batch_size=1, verbose=1)
     return predicted, metrics
@@ -303,7 +299,8 @@ def calculate_metrics(pred, ytrue, factor):
     return metrics
 
 
-def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio=0.7, cluster=True, load=False):
+def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio=0.7, cluster=True, load=False,
+                         uncertainty=True):
     """
     Train the model
     :param city: Name of the city
@@ -344,13 +341,16 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
     # model.save('../saved_models/lstm_{}_epochs_{}.h5'.format(city, epochs))
 
     predicted_out, metrics_out = evaluate(
-        city, model, X_test, Y_test, label="out_of_sample_{}".format(city)
+        city, model, X_test, Y_test, label="out_of_sample_{}".format(city), uncertainty=uncertainty
     )
     predicted_in, metrics_in = evaluate(
-        city, model, X_train, Y_train, label="in_sample_{}".format(city)
+        city, model, X_train, Y_train, label="in_sample_{}".format(city), uncertainty=uncertainty
     )
-
-    metrics = calculate_metrics(predicted_out, Y_test, factor)
+    if uncertainty:
+        pout = np.percentile(predicted_out, 50, axis=2)
+    else:
+        pout = predicted_out
+    metrics = calculate_metrics(pout, Y_test, factor)
     metrics.to_pickle(
         "../saved_models/LSTM/{}/metrics_lstm_{}_8pw.pkl".format(STATE, city)
     )
@@ -405,7 +405,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
         split_point=len(Y_train),
     )
 
-    return predicted, X_test, Y_test, Y_train, factor
+    return predicted, indice, X_test, Y_test, Y_train, factor
 
 
 def cluster_prediction(
@@ -519,7 +519,7 @@ def state_prediction(
 if __name__ == "__main__":
     # K.set_epsilon(1e-5)
 
-    single_prediction(
+    predicted, indice, X_test, Y_test, Y_train, factor = single_prediction(
         CITY,
         STATE,
         PREDICTORS,

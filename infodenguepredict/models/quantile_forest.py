@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_cluster_data, get_city_names, combined_data, get_alerta_table
 from infodenguepredict.predict_settings import *
 from skgarden import RandomForestQuantileRegressor
+import shap
 
 
 def get_cities_from_state(state):
@@ -182,7 +183,7 @@ def qf_prediction(city, state, horizon, lookback):
     metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest', state, city))
     plot_prediction(preds, preds25, preds975, targets[1], city_name, len(X_train))
 
-    return preds, preds25, preds975, X_train, targets, data_lag
+    return model, preds, preds25, preds975, X_train, targets, data_lag
 
 
 def qf_single_state_prediction(state, lookback, horizon, predictors):
@@ -303,4 +304,8 @@ if __name__ == "__main__":
     # qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
     # qf_single_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
 
-    qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW, lookback=LOOK_BACK)
+    model, preds, preds25, preds975, X_train, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW, lookback=LOOK_BACK)
+    # explainer = shap.TreeExplainer(model)
+    # shap_values = explainer.shap_values(X_train)
+    # shap.force_plot(explainer.expected_value, shap_values, matplotlib=True)
+
