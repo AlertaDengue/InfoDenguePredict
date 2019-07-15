@@ -48,8 +48,8 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
         batch_input_shape=(batch_size, look_back, features),
         return_sequences=True,
         # activation='relu',
-        dropout=0,
-        recurrent_dropout=0,
+        dropout=0.1,
+        recurrent_dropout=0.1,
         implementation=2,
         unit_forget_bias=True,
     )(inp, training=True)
@@ -61,8 +61,8 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
         batch_input_shape=(batch_size, look_back, features),
         return_sequences=True,
         # activation='relu',
-        dropout=0,
-        recurrent_dropout=0,
+        dropout=0.1,
+        recurrent_dropout=0.1,
         implementation=2,
         unit_forget_bias=True,
     )(x, training=True)
@@ -73,8 +73,8 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
         stateful=True,
         batch_input_shape=(batch_size, look_back, features),
         # activation='relu',
-        dropout=0,
-        recurrent_dropout=0,
+        dropout=0.1,
+        recurrent_dropout=0.1,
         implementation=2,
         unit_forget_bias=True,
     )(x, training=True)
@@ -168,7 +168,7 @@ def train(
         nb_epoch=epochs,
         validation_split=0.15,
         verbose=1,
-        callbacks=[TB_callback, EarlyStopping(patience=10)]
+        callbacks=[TB_callback, EarlyStopping(patience=15)]
     )
     with open("history_{}.pkl".format(geocode), "wb") as f:
         pickle.dump(hist.history, f)
