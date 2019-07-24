@@ -150,9 +150,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     return model
 
 
-def train(
-        model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwrite=True
-):
+def train(model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwrite=True):
     TB_callback = TensorBoard(
         log_dir="./tensorboard",
         histogram_freq=0,
@@ -216,11 +214,10 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     P.text(indice[split_point + 2], 0.6 * ymax, "Out of sample Predictions")
     # plot only the last (furthest) prediction point
     P.plot(indice[7:], Ydata[:, -1] * factor, 'k-', alpha=0.7, label='data')
-    P.plot(indice[7:], df_predicted[df_predicted.columns[-1]]*factor, 'r-', alpha=0.5, label='median')
-    P.fill_between(indice[7:], df_predicted25[df_predicted25.columns[-1]]*factor, df_predicted975[df_predicted975.columns[-1]]*factor,
+    P.plot(indice[7:], df_predicted[df_predicted.columns[-1]] * factor, 'r-', alpha=0.5, label='median')
+    P.fill_between(indice[7:], df_predicted25[df_predicted25.columns[-1]] * factor,
+                   df_predicted975[df_predicted975.columns[-1]] * factor,
                    color='b', alpha=0.3)
-
-
 
     # plot all predicted points
     # P.plot(indice[pred_window:], pd.DataFrame(Ydata)[7] * factor, 'k-')
@@ -338,7 +335,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
     if load:
         model.load_weights("trained_{}_model.h5".format(city))
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
-    # model.save('../saved_models/lstm_{}_epochs_{}.h5'.format(city, epochs))
+    model.save('../saved_models/LSTM/{}/lstm_{}_epochs_{}.h5'.format(STATE, city, epochs))
 
     predicted_out, metrics_out = evaluate(
         city, model, X_test, Y_test, label="out_of_sample_{}".format(city), uncertainty=uncertainty
