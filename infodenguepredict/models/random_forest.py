@@ -267,7 +267,7 @@ def rf_state_prediction(state, lookback, horizon, predictors):
         data_full, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
                                        data_types=DATA_TYPES, cols=predictors)
         for city in cluster:
-            if os.path.isfile('/home/elisa/Documentos/InfoDenguePredict/infodenguepredict/models/saved_models/{}/rf_metrics_{}.pkl'.format(state, city)):
+            if os.path.isfile('./saved_models/{}/rf_metrics_{}.pkl'.format(state, city)):
                 print('done')
                 continue
 

@@ -36,16 +36,7 @@ def get_alerta_table(municipio=None, state=None):
     if municipio is None:
         sql = 'select h.* from "Municipio"."Historico_alerta" h JOIN "Dengue_global"."Municipio" m ON h.municipio_geocodigo=m.geocodigo where m.uf=\'{}\';'.format(
             state)
-        # if state == 'RJ':
-        #     sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>3300000 and municipio_geocodigo<4000000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        # elif state == 'ES':
-        #     sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>3200000 and municipio_geocodigo<3300000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        # elif state == 'PR':
-        #     sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>4000000 and municipio_geocodigo<5000000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        # elif state is None:
-        #     sql = 'select * from "Municipio"."Historico_alerta" ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        # else:
-        #     raise NameError("{} is not a valid state identifier".format(state))
+
         df = pd.read_sql_query(sql, conexao, index_col='id')
     else:
         df = pd.read_sql_query(
