@@ -18,10 +18,11 @@ db_engine = create_engine("postgresql://{}:{}@{}/{}".format(
 ))
 
 
-def get_alerta_table(municipio=None, state=None):
+def get_alerta_table(municipio=None, state=None, doenca='dengue'):
     """
     Pulls the data from a single city, cities from a state or all cities from the InfoDengue
     database
+    :param doenca: 'dengue'|'chik'|'zika'
     :param municipio: geocode (one city) or None (all)
     :param state: full name of state, with first letter capitalized: "Cear
     :return: Pandas dataframe
@@ -33,23 +34,20 @@ def get_alerta_table(municipio=None, state=None):
                                                               config('PSQL_PASSWORD'),
                                                               config('PSQL_HOST'),
                                                               config('PSQL_DB')))
+    if doenca == 'dengue':
+        tabela = 'Historico_alerta'
+    elif doenca == 'chik':
+        tabela = 'Historico_alerta_chik'
+    elif doenca == 'zika':
+        tabela = 'Historico_alerta_zika'
     if municipio is None:
-        sql = 'select h.* from "Municipio"."Historico_alerta" h JOIN "Dengue_global"."Municipio" m ON h.municipio_geocodigo=m.geocodigo where m.uf=\'{}\';'.format(
+        sql = 'select h.* from "Municipio"."{}" h JOIN "Dengue_global"."Municipio" m ON h.municipio_geocodigo=m.geocodigo where m.uf=\'{}\';'.format(tabela,
             state)
-        # if state == 'RJ':
-        #     sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>3300000 and municipio_geocodigo<4000000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        # elif state == 'ES':
-        #     sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>3200000 and municipio_geocodigo<3300000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        # elif state == 'PR':
-        #     sql = 'select * from "Municipio"."Historico_alerta"  where municipio_geocodigo>4000000 and municipio_geocodigo<5000000 ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        # elif state is None:
-        #     sql = 'select * from "Municipio"."Historico_alerta" ORDER BY "data_iniSE", municipio_geocodigo ASC;'
-        # else:
-        #     raise NameError("{} is not a valid state identifier".format(state))
+
         df = pd.read_sql_query(sql, conexao, index_col='id')
     else:
         df = pd.read_sql_query(
-            'select * from "Municipio"."Historico_alerta" where municipio_geocodigo={} ORDER BY "data_iniSE" ASC;'.format(
+            'select * from "Municipio"."{}" where municipio_geocodigo={} ORDER BY "data_iniSE" ASC;'.format(tabela,
                 municipio),
             conexao, index_col='id')
     df.data_iniSE = pd.to_datetime(df.data_iniSE)
@@ -142,7 +140,7 @@ def get_city_names(geocodigos):
     return res
 
 
-def build_multicity_dataset(state, cols=None) -> pd.DataFrame:
+def build_multicity_dataset(state, cols=None, doenca='dengue') -> pd.DataFrame:
     """
     Fetches a data table for the specfied state, and converts it from long to wide format,
     so that it can be fed straight to th models.
@@ -150,7 +148,7 @@ def build_multicity_dataset(state, cols=None) -> pd.DataFrame:
     :param cols: List of columns to return. If None, return all columns from dataframe
     :return: Panda DataFrame
     """
-    full_data = get_alerta_table(state=state)
+    full_data = get_alerta_table(state=state, doenca=doenca)
     if cols:
         if 'municipio_geocodigo' not in cols:
             cols.append('municipio_geocodigo')
@@ -162,7 +160,7 @@ def build_multicity_dataset(state, cols=None) -> pd.DataFrame:
     return full_data
 
 
-def combined_data(municipio, data_types):
+def combined_data(municipio, data_types, doenca='dengue'):
     """
     Returns combined dataframe with incidence, tweets, and temperature for a city
     :param municipio: geocode
@@ -171,7 +169,7 @@ def combined_data(municipio, data_types):
     """
     to_concat = []
     if 'alerta' in data_types:
-        alerta_table = get_alerta_table(municipio=municipio)
+        alerta_table = get_alerta_table(municipio=municipio, doenca=doenca)
         to_concat.append(alerta_table)
 
     if 'weather' in data_types:
@@ -213,12 +211,12 @@ def get_cluster_data(geocode, clusters, data_types, cols=None, save=False):
     return full_data, cluster
 
 
-def get_example_table(geocode=None):
+def get_example_table(geocode=None, doenca='dengue'):
     """
     Fetch the data from the database, filters out useless variables
     :return: pandas dataframe
     """
-    raw_df = get_alerta_table(geocode)
+    raw_df = get_alerta_table(geocode, doenca=doenca)
     filtered_df = raw_df[['SE', 'casos_est', 'casos_est_min', 'casos_est_max',
                           'casos', 'municipio_geocodigo', 'p_rt1', 'p_inc100k', 'nivel']]
     filtered_df['SE'] = [int(str(x)[-2:]) for x in filtered_df.SE]
@@ -241,7 +239,7 @@ def get_example_table(geocode=None):
 #     return complete
 
 
-def random_data(N, state, cols=None, city=None):
+def random_data(N, state, cols=None, city=None, doenca='dengue'):
     """
 
     :param N:
@@ -251,7 +249,7 @@ def random_data(N, state, cols=None, city=None):
     :return:
     """
 
-    alerta_table = get_alerta_table(state=state)
+    alerta_table = get_alerta_table(state=state, doenca=doenca)
     cities_list = alerta_table.municipio_geocodigo.unique()
 
     random_group = random.sample(list(cities_list), N)

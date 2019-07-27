@@ -3,10 +3,12 @@ import pandas as pd
 import pickle
 import math
 import os
+import shap
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Tesla K40
 
 from matplotlib import pyplot as P
+import keras
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
 from keras.models import Sequential
@@ -38,59 +40,107 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     :param batch_size: batch size for batch training
     :return:
     """
-    model = Sequential()
+    inp = keras.Input(shape=(look_back, features), batch_shape=(batch_size, look_back, features))
+    x = LSTM(
+        hidden,
+        input_shape=(look_back, features),
+        stateful=True,
+        batch_input_shape=(batch_size, look_back, features),
+        return_sequences=True,
+        # activation='relu',
+        dropout=0.1,
+        recurrent_dropout=0.1,
+        implementation=2,
+        unit_forget_bias=True,
+    )(inp, training=True)
+    x = Dropout(0.2)(x, training=True)
+    x = LSTM(
+        hidden,
+        input_shape=(look_back, features),
+        stateful=True,
+        batch_input_shape=(batch_size, look_back, features),
+        return_sequences=True,
+        # activation='relu',
+        dropout=0.1,
+        recurrent_dropout=0.1,
+        implementation=2,
+        unit_forget_bias=True,
+    )(x, training=True)
+    x = Dropout(0.2)(x, training=True)
+    x = LSTM(
+        hidden,
+        input_shape=(look_back, features),
+        stateful=True,
+        batch_input_shape=(batch_size, look_back, features),
+        # activation='relu',
+        dropout=0.1,
+        recurrent_dropout=0.1,
+        implementation=2,
+        unit_forget_bias=True,
+    )(x, training=True)
+    x = Dropout(0.2)(x, training=True)
+    out = Dense(
+        predict_n,
+        activation="relu",
+        kernel_initializer="random_uniform",
+        bias_initializer="zeros",
+    )(x)
+    model = keras.Model(inp, out)
 
-    model.add(
-        LSTM(
-            hidden,
-            input_shape=(look_back, features),
-            stateful=True,
-            batch_input_shape=(batch_size, look_back, features),
-            return_sequences=True,
-            # activation='relu',
-            dropout=0.2,
-            recurrent_dropout=0.2,
-            implementation=2,
-            unit_forget_bias=True,
-        )
-    )
-    model.add(
-        LSTM(
-            hidden,
-            input_shape=(look_back, features),
-            stateful=True,
-            batch_input_shape=(batch_size, look_back, features),
-            return_sequences=True,
-            # activation='relu',
-            dropout=0.2,
-            recurrent_dropout=0.2,
-            implementation=2,
-            unit_forget_bias=True,
-        )
-    )
-
-    model.add(
-        LSTM(
-            hidden,
-            input_shape=(look_back, features),
-            stateful=True,
-            batch_input_shape=(batch_size, look_back, features),
-            # activation='relu',
-            dropout=0.2,
-            recurrent_dropout=0.2,
-            implementation=2,
-            unit_forget_bias=True,
-        )
-    )
-
-    model.add(
-        Dense(
-            predict_n,
-            activation="relu",
-            kernel_initializer="random_uniform",
-            bias_initializer="zeros",
-        )
-    )
+    # model = Sequential()
+    #
+    # model.add(
+    #     LSTM(
+    #         hidden,
+    #         input_shape=(look_back, features),
+    #         stateful=True,
+    #         batch_input_shape=(batch_size, look_back, features),
+    #         return_sequences=True,
+    #         # activation='relu',
+    #         dropout=0,
+    #         recurrent_dropout=0,
+    #         implementation=2,
+    #         unit_forget_bias=True,
+    #     )
+    # )
+    # model.add(Dropout(0.2))
+    # model.add(
+    #     LSTM(
+    #         hidden,
+    #         input_shape=(look_back, features),
+    #         stateful=True,
+    #         batch_input_shape=(batch_size, look_back, features),
+    #         return_sequences=True,
+    #         # activation='relu',
+    #         dropout=0,
+    #         recurrent_dropout=0,
+    #         implementation=2,
+    #         unit_forget_bias=True,
+    #     )
+    # )
+    # model.add(Dropout(0.2))
+    # model.add(
+    #     LSTM(
+    #         hidden,
+    #         input_shape=(look_back, features),
+    #         stateful=True,
+    #         batch_input_shape=(batch_size, look_back, features),
+    #         # activation='relu',
+    #         dropout=0,
+    #         recurrent_dropout=0,
+    #         implementation=2,
+    #         unit_forget_bias=True,
+    #     )
+    # )
+    # model.add(Dropout(0.2))
+    # model.add(
+    #     Dense(
+    #         predict_n,
+    #         activation="relu",
+    #         kernel_initializer="random_uniform",
+    #         bias_initializer="zeros",
+    #     )
+    # )
 
     start = time()
     model.compile(loss="msle", optimizer="nadam", metrics=["accuracy", "mape", "mse"])
@@ -100,9 +150,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     return model
 
 
-def train(
-        model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwrite=True
-):
+def train(model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwrite=True):
     TB_callback = TensorBoard(
         log_dir="./tensorboard",
         histogram_freq=0,
@@ -118,7 +166,7 @@ def train(
         nb_epoch=epochs,
         validation_split=0.15,
         verbose=1,
-        callbacks=[TB_callback, EarlyStopping(patience=3)]
+        callbacks=[TB_callback, EarlyStopping(patience=15)]
     )
     with open("history_{}.pkl".format(geocode), "wb") as f:
         pickle.dump(hist.history, f)
@@ -148,54 +196,49 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     :param predicted: model predictions
     :param Ydata: observed data
     :param indice:
-    :param label:
+    :param label: Name of the locality of the predictions
     :param pred_window:
-    :param factor:
+    :param factor: Normalizing factor for the target variable
     """
 
     P.clf()
-    df_predicted = pd.DataFrame(predicted).T
+    if len(predicted.shape) == 2:
+        df_predicted = pd.DataFrame(predicted).T
+        df_predicted25 = None
+    else:
+        df_predicted = pd.DataFrame(np.percentile(predicted, 50, axis=2))
+        df_predicted25 = pd.DataFrame(np.percentile(predicted, 2.5, axis=2))
+        df_predicted975 = pd.DataFrame(np.percentile(predicted, 97.5, axis=2))
     ymax = max(predicted.max() * factor, Ydata.max() * factor)
     P.vlines(indice[split_point], 0, ymax, "g", "dashdot", lw=2)
     P.text(indice[split_point + 2], 0.6 * ymax, "Out of sample Predictions")
-
-    # plot only the last prediction point
-    x = []
-    y = []
-    for n in range(df_predicted.shape[1] - pred_window):
-        P.plot(
-            indice[n: n + pred_window],
-            pd.DataFrame(Ydata.T)[n] * factor,
-            "k-",
-            alpha=0.7,
-        )
-        P.vlines(
-            indice[n + pred_window], 0, df_predicted[n][3] * factor, "b", alpha=0.2
-        )
-        x.append(indice[n + pred_window])
-        y.append(df_predicted[n][3] * factor)
-    P.plot(x, y, "r-", alpha=0.7)
+    # plot only the last (furthest) prediction point
+    P.plot(indice[7:], Ydata[:, -1] * factor, 'k-', alpha=0.7, label='data')
+    P.plot(indice[7:], df_predicted[df_predicted.columns[-1]] * factor, 'r-', alpha=0.5, label='median')
+    P.fill_between(indice[7:], df_predicted25[df_predicted25.columns[-1]] * factor,
+                   df_predicted975[df_predicted975.columns[-1]] * factor,
+                   color='b', alpha=0.3)
 
     # plot all predicted points
     # P.plot(indice[pred_window:], pd.DataFrame(Ydata)[7] * factor, 'k-')
-    for n in range(df_predicted.shape[1] - pred_window):
-        P.plot(
-            indice[n: n + pred_window],
-            pd.DataFrame(Ydata.T)[n] * factor,
-            "k-",
-            alpha=0.7,
-        )
-        P.plot(indice[n: n + pred_window], df_predicted[n] * factor, "r-.")
-        try:
-            P.vlines(
-                indice[n + pred_window],
-                0,
-                df_predicted[n].values[-1] * factor,
-                "b",
-                alpha=0.2,
-            )
-        except IndexError as e:
-            print(indice.shape, n, df_predicted.shape)
+    # for n in range(df_predicted.shape[1] - pred_window):
+    #     P.plot(
+    #         indice[n: n + pred_window],
+    #         pd.DataFrame(Ydata.T)[n] * factor,
+    #         "k-",
+    #         alpha=0.7,
+    #     )
+    #     P.plot(indice[n: n + pred_window], df_predicted[n] * factor, "r-")
+    #     try:
+    #         P.vlines(
+    #             indice[n + pred_window],
+    #             0,
+    #             df_predicted[n].values[-1] * factor,
+    #             "b",
+    #             alpha=0.2,
+    #         )
+    #     except IndexError as e:
+    #         print(indice.shape, n, df_predicted.shape)
 
     P.grid()
     P.title("Predictions for {}".format(label))
@@ -208,19 +251,22 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
         bbox_inches="tight",
         dpi=300,
     )
-    # P.show()
+    P.show()
 
 
 def loss_and_metrics(model, Xtest, Ytest):
     print(model.evaluate(Xtest, Ytest, batch_size=1))
 
 
-def evaluate(city, model, Xdata, Ydata, label):
+def evaluate(city, model, Xdata, Ydata, label, uncertainty=False):
     loss_and_metrics(model, Xdata, Ydata)
     metrics = model.evaluate(Xdata, Ydata, batch_size=1)
     # with open('metrics_{}.pkl'.format(label), 'wb') as f:
     #     pickle.dump(metrics, f)
-    predicted = model.predict(Xdata, batch_size=1, verbose=1)
+    if uncertainty:
+        predicted = np.stack([model.predict(Xdata, batch_size=1, verbose=1) for i in range(100)], axis=2)
+    else:
+        predicted = model.predict(Xdata, batch_size=1, verbose=1)
     return predicted, metrics
 
 
@@ -250,28 +296,18 @@ def calculate_metrics(pred, ytrue, factor):
     return metrics
 
 
-def train_evaluate_model(
-        city,
-        data,
-        predict_n,
-        look_back,
-        hidden,
-        epochs,
-        ratio=0.7,
-        cluster=True,
-        load=False,
-):
+def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio=0.7, cluster=True, load=False,
+                         uncertainty=True):
     """
     Train the model
-    :param city:
-    :param data:
-    :param predict_n:
-    :param look_back:
-    :param hidden:
-    :param plot:
-    :param epochs:
-    :param ratio:
-    :param cluster:
+    :param city: Name of the city
+    :param data: Dataset
+    :param predict_n: Number of steps ahead to be predicted
+    :param look_back: number of history steps to include in training window
+    :param hidden: Number of Hidden layer
+    :param epochs: number of training epochs
+    :param ratio: ratio of the full dataset to use in training
+    :param cluster: whether to train on features from the city's cluster
     :param load: Whether to load a previously saved model
     :return:
     """
@@ -299,16 +335,19 @@ def train_evaluate_model(
     if load:
         model.load_weights("trained_{}_model.h5".format(city))
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
-    # model.save('../saved_models/lstm_{}_epochs_{}.h5'.format(city, epochs))
+    model.save('../saved_models/LSTM/{}/lstm_{}_epochs_{}.h5'.format(STATE, city, epochs))
 
     predicted_out, metrics_out = evaluate(
-        city, model, X_test, Y_test, label="out_of_sample_{}".format(city)
+        city, model, X_test, Y_test, label="out_of_sample_{}".format(city), uncertainty=uncertainty
     )
     predicted_in, metrics_in = evaluate(
-        city, model, X_train, Y_train, label="in_sample_{}".format(city)
+        city, model, X_train, Y_train, label="in_sample_{}".format(city), uncertainty=uncertainty
     )
-
-    metrics = calculate_metrics(predicted_out, Y_test, factor)
+    if uncertainty:
+        pout = np.percentile(predicted_out, 50, axis=2)
+    else:
+        pout = predicted_out
+    metrics = calculate_metrics(pout, Y_test, factor)
     metrics.to_pickle(
         "../saved_models/LSTM/{}/metrics_lstm_{}_8pw.pkl".format(STATE, city)
     )
@@ -322,9 +361,7 @@ def train_evaluate_model(
     return predicted, X_test, Y_test, Y_train, factor
 
 
-def single_prediction(
-        city, state, predictors, predict_n, look_back, hidden, epochs, predict=False
-):
+def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, predict=False):
     """
     Fit an LSTM model to generate predictions for a city, Using its cluster as regressors.
     :param city: geocode of the target city
@@ -353,19 +390,19 @@ def single_prediction(
         ratio = 0.7
 
     predicted, X_test, Y_test, Y_train, factor = train_evaluate_model(
-        city, data, predict_n, look_back, hidden, epochs, ratio=ratio, load=True
+        city, data, predict_n, look_back, hidden, epochs, ratio=ratio, load=False
     )
     plot_predicted_vs_data(
         predicted,
         np.concatenate((Y_train, Y_test), axis=0),
         indice[:],
-        label="Predictions for {}".format(city_name),
+        label="{}".format(city_name),
         pred_window=predict_n,
         factor=factor,
         split_point=len(Y_train),
     )
 
-    return predicted, X_test, Y_test, Y_train, factor
+    return predicted, indice, X_test, Y_test, Y_train, factor
 
 
 def cluster_prediction(
@@ -479,26 +516,15 @@ def state_prediction(
 if __name__ == "__main__":
     # K.set_epsilon(1e-5)
 
-    # single_prediction(
-    #     CITY,
-    #     STATE,
-    #     PREDICTORS,
-    #     predict_n=PREDICTION_WINDOW,
-    #     look_back=LOOK_BACK,
-    #     hidden=HIDDEN,
-    #     epochs=EPOCHS,
-    # )
+    predicted, indice, X_test, Y_test, Y_train, factor = single_prediction(
+        CITY,
+        STATE,
+        PREDICTORS,
+        predict_n=PREDICTION_WINDOW,
+        look_back=LOOK_BACK,
+        hidden=HIDDEN,
+        epochs=EPOCHS,
+    )
 
-    cluster_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK, hidden=HIDDEN,
-                       epochs=EPOCHS)
-
-    ## Optimize Hyperparameters
-    #
-    # def get_data():
-    #     return X_train, Y_train, X_test, Y_test, X_train.shape[2]
-
-    # best_run, best_model = optim.minimize(model=optimize_model,
-    #                                       data=get_data,
-    #                                       algo=tpe.suggest,
-    #                                       max_evals=5,
-    #                                       trials=Trials())
+    # cluster_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK, hidden=HIDDEN,
+    #                    epochs=EPOCHS)
