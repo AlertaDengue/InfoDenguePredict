@@ -18,17 +18,17 @@ from keras import backend as K
 from sklearn.metrics import *
 
 from time import time
-from infodenguepredict.data.infodengue import (
-    combined_data,
-    get_cluster_data,
-    random_data,
-    get_city_names,
-)
+#from infodenguepredict.data.infodengue import (
+#    combined_data,
+#    get_cluster_data,
+#    random_data,
+#    get_city_names,
+#)
 from infodenguepredict.models.deeplearning.preprocessing import (
     split_data,
     normalize_data,
 )
-from infodenguepredict.predict_settings import *
+#from infodenguepredict.predict_settings import *
 
 
 def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
@@ -189,6 +189,51 @@ def plot_training_history(hist):
     # df_mape.plot(ax=ax, grid=True, logy=True);
     # P.savefig("{}/LSTM_training_history.png".format(FIG_PATH))
 
+def make_predictions(model, Xdata, n_pred = 100, pred_window = 1, batch_size=1):
+    """
+    Makes several predictions from a model.
+
+    :param model: trained (lstm) model
+    :param Xdata: Feature matrix
+    :param n_pred: Number of predictions
+    :return predictions: Array with predictions
+    """
+    predictions = [model.predict(Xdata,batch_size=batch_size)[:,:pred_window] for i in range(n_pred)]
+    return np.array(predictions)
+
+def plot_quantiles(ax,predictions,Ydata,plot = "median",confidence=95, \
+                   data_kw={"label": "data","color":"black"}, pred_kw = {"color":"red"},\
+                  fill_kw={"color":"blue","alpha":0.3,"label": "95% confidence interval"},\
+                   title_kw={"label": "Predictions for Rio de Janeiro","fontsize":20},\
+                   xlabel_kw = {"xlabel": "time","fontsize":14},\
+                   ylabel_kw={"ylabel":"Incidence","fontsize":14},\
+                   grid_params={}):
+    """
+    Plots model predictions
+    """
+    
+    ax.grid(**grid_params)
+    ax.plot(Ydata,**data_kw)
+    if plot == "median":
+        pred_kw["label"] = "median"
+        ax.plot(np.percentile(predictions,50,axis=0),**pred_kw)
+    elif plot == "mean":
+        pred_kw["label"] = "mean"
+        ax.plot(np.mean(predictions,axis=0),**pred_kw)
+    if confidence is not None:
+        delta = (100-confidence)/2
+        lower_bound = np.percentile(predictions,delta,axis=0)
+        upper_bound = np.percentile(predictions,100-delta,axis=0)
+        x = np.arange(len(lower_bound))
+        ax.fill_between(x,lower_bound,upper_bound,where=upper_bound>=lower_bound,**fill_kw)
+    if title_kw is not None:
+        ax.set_title(**title_kw)
+    if xlabel_kw is not None:
+        ax.set_xlabel(**xlabel_kw)
+    if ylabel_kw is not None:
+        ax.set_ylabel(**ylabel_kw)
+    ax.legend()
+    return ax
 
 def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor, split_point=None):
     """
@@ -200,7 +245,6 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     :param pred_window:
     :param factor: Normalizing factor for the target variable
     """
-
     P.clf()
     if len(predicted.shape) == 2:
         df_predicted = pd.DataFrame(predicted).T
