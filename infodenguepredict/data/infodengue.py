@@ -186,7 +186,7 @@ def combined_data(municipio, data_types, doenca='dengue'):
     return full_data
 
 
-def get_cluster_data(geocode, clusters, data_types, cols=None, save=False):
+def get_cluster_data(geocode, clusters, data_types, cols=None, save=False, doenca='dengue'):
     """
     Returns the concatenated wide format table of all the variables in the cluster of a city.
     :param geocode: 7-digit geocode
@@ -199,7 +199,7 @@ def get_cluster_data(geocode, clusters, data_types, cols=None, save=False):
 
     full_data = pd.DataFrame()
     for city_code in cluster:
-        tmp = combined_data(city_code, data_types)
+        tmp = combined_data(city_code, data_types, doenca=doenca)
         if cols is not None:
             tmp = tmp[cols]
         tmp.columns = ['{}_{}'.format(col, city_code) for col in tmp.columns.values]

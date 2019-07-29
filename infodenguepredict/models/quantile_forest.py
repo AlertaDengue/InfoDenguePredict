@@ -77,7 +77,7 @@ def calculate_metrics(pred, ytrue):
             median_absolute_error(ytrue, pred), r2_score(ytrue, pred)]
 
 
-def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='quantile_forest'):
+def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='quantile_forest', save=True):
     plt.clf()
     plt.plot(ydata, 'k-', label='data')
 
@@ -119,10 +119,11 @@ def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='qu
     plt.title('Predictions for {}'.format(title))
     plt.xticks(rotation=70)
     plt.legend(loc=0)
-    if not os.path.exists('saved_models/' + path + '/' + STATE):
-        os.mkdir('saved_models/' + path + '/' + STATE)
+    if save:
+        if not os.path.exists('saved_models/' + path + '/' + STATE):
+            os.mkdir('saved_models/' + path + '/' + STATE)
 
-    plt.savefig('saved_models/{}/{}/rf_{}_ss.png'.format(path, STATE, title), dpi=300)
+        plt.savefig('saved_models/{}/{}/qf_{}_ss.png'.format(path, STATE, title), dpi=300)
     plt.show()
     return None
 
@@ -130,7 +131,7 @@ def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='qu
 def qf_prediction(city, state, horizon, lookback):
     with open('../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
-    data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
+    data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS, doenca=DISEASE)
 
     target = 'casos_est_{}'.format(city)
     casos_est_columns = ['casos_est_{}'.format(i) for i in group]
@@ -179,7 +180,7 @@ def qf_prediction(city, state, horizon, lookback):
         metrics[d] = calculate_metrics(pred_m, tgtt)
 
     metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest', state, city))
-    dump(model, 'saved_models/quantile_forest/{}_city_model.joblib'.format(city))
+    dump(model, 'saved_models/quantile_forest/{}/{}_city_model.joblib'.format(state, city))
     plot_prediction(preds, preds25, preds975, targets[1], city_name, len(X_train))
 
     return model, preds, preds25, preds975, X_train, targets, data_lag
