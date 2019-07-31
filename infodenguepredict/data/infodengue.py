@@ -27,7 +27,7 @@ def get_alerta_table(municipio=None, state=None, doenca='dengue'):
     :param state: full name of state, with first letter capitalized: "Cear
     :return: Pandas dataframe
     """
-    estados = {'RJ': 'Rio de Janeiro', 'ES': 'Espírito Santo', 'PR': 'Paraná'}
+    estados = {'RJ': 'Rio de Janeiro', 'ES': 'Espírito Santo', 'PR': 'Paraná', 'CE': 'Ceará'}
     if state in estados:
         state = estados[state]
     conexao = create_engine("postgresql://{}:{}@{}/{}".format(config('PSQL_USER'),
@@ -195,7 +195,10 @@ def get_cluster_data(geocode, clusters, data_types, cols=None, save=False, doenc
     :parm cols: List of columns to return. If None, return all columns from dataframe
     :return: Pandas DataFrame
     """
-    cluster = list(filter(lambda x: geocode in x, clusters))[0]
+    try:
+        cluster = list(filter(lambda x: geocode in x, clusters))[0]
+    except IndexError as e:
+        cluster = [geocode]
 
     full_data = pd.DataFrame()
     for city_code in cluster:

@@ -14,7 +14,7 @@ import os
 from skgarden import RandomForestQuantileRegressor
 
 
-def plot_prediction(pred, pred25, pred975, ydata, horizon, title, path='quantile_forest', save=True):
+def plot_prediction(pred, pred25, pred975, ydata, horizon, title, path='quantile_forest', save=True, doenca='chik'):
     plt.clf()
     plt.plot(ydata, 'k-', label='data')
 
@@ -27,14 +27,14 @@ def plot_prediction(pred, pred25, pred975, ydata, horizon, title, path='quantile
 
     plt.grid()
     plt.ylabel('Weekly cases')
-    plt.title('Predictions for {}'.format(title))
+    plt.title('{} cross-predictions for {}'.format(doenca,title))
     plt.xticks(rotation=70)
     plt.legend(loc=0)
     if save:
         if not os.path.exists('saved_models/' + path + '/' + STATE):
             os.mkdir('saved_models/' + path + '/' + STATE)
 
-        plt.savefig('saved_models/{}/{}/qf_chik_cross_{}_.png'.format(path, STATE, title), dpi=300)
+        plt.savefig('saved_models/{}/{}/qf_{}_cross_{}_.png'.format(path, STATE, doenca, title), dpi=300)
     plt.show()
     return None
 
@@ -90,7 +90,7 @@ def qf_prediction(city, state, horizon, lookback, doenca='chik'):
     # print(metrics)
 
     # metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest', state, city))
-    plot_prediction(pred, pred25, pred975, targets[1], horizon, city_name, save=True)
+    plot_prediction(pred, pred25, pred975, targets[1], horizon, city_name, save=True, doenca=doenca)
 
     return model, pred, pred25, pred975, X_data, targets, data_lag
 
