@@ -96,7 +96,7 @@ def qf_prediction(city, state, horizon, lookback, doenca='chik'):
 
 
 if __name__ == "__main__":
-    model, pred, pred25, pred975, X_data, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
-                                                                                lookback=LOOK_BACK, doenca='chik')
-    # model, preds, preds25, preds975, X_data, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
-    #                                                                            lookback=LOOK_BACK, doenca='zika')
+    # model, pred, pred25, pred975, X_data, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
+    #                                                                             lookback=LOOK_BACK, doenca='chik')
+    model, preds, preds25, preds975, X_data, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
+                                                                               lookback=LOOK_BACK, doenca='zika')
