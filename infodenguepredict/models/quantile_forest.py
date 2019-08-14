@@ -77,7 +77,7 @@ def calculate_metrics(pred, ytrue):
             median_absolute_error(ytrue, pred), r2_score(ytrue, pred)]
 
 
-def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='quantile_forest'):
+def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='quantile_forest', save=True):
     plt.clf()
     plt.plot(ydata, 'k-', label='data')
 
@@ -119,10 +119,11 @@ def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='qu
     plt.title('Predictions for {}'.format(title))
     plt.xticks(rotation=70)
     plt.legend(loc=0)
-    if not os.path.exists('saved_models/' + path + '/' + STATE):
-        os.mkdir('saved_models/' + path + '/' + STATE)
+    if save:
+        if not os.path.exists('saved_models/' + path + '/' + STATE):
+            os.mkdir('saved_models/' + path + '/' + STATE)
 
-    plt.savefig('saved_models/{}/{}/rf_{}_ss.png'.format(path, STATE, title), dpi=300)
+        plt.savefig('saved_models/{}/{}/qf_{}_ss.png'.format(path, STATE, title), dpi=300)
     plt.show()
     return None
 
@@ -130,7 +131,7 @@ def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='qu
 def qf_prediction(city, state, horizon, lookback):
     with open('../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
-    data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS)
+    data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS, doenca=DISEASE)
 
     target = 'casos_est_{}'.format(city)
     casos_est_columns = ['casos_est_{}'.format(i) for i in group]
@@ -162,6 +163,7 @@ def qf_prediction(city, state, horizon, lookback):
         tgtt = targets[d][len(X_train):]
 
         model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
+        dump(model, 'saved_models/quantile_forest/{}/{}_city_model_{}W.joblib'.format(state, city, d))
         pred25 = model.predict(X_data[:len(targets[d])], quantile=2.5)
         pred = model.predict(X_data[:len(targets[d])], quantile=50)
         pred975 = model.predict(X_data[:len(targets[d])], quantile=97.5)
@@ -179,7 +181,7 @@ def qf_prediction(city, state, horizon, lookback):
         metrics[d] = calculate_metrics(pred_m, tgtt)
 
     metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest', state, city))
-    dump(model, 'saved_models/quantile_forest/{}_city_model.joblib'.format(city))
+
     plot_prediction(preds, preds25, preds975, targets[1], city_name, len(X_train))
 
     return model, preds, preds25, preds975, X_train, targets, data_lag
@@ -325,11 +327,11 @@ if __name__ == "__main__":
     # target = 'casos_est_{}'.format(CITY)
     # preds = qf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
     # for STATE in ['RJ', 'PR', 'CE']:
-    qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
+    # qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
     # qf_single_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
 
-    # model, preds, preds25, preds975, X_train, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
-    #                                                                             lookback=LOOK_BACK)
+    model, preds, preds25, preds975, X_train, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
+                                                                                lookback=LOOK_BACK)
     # print(model.feature_importances_)
     # explainer = shap.TreeExplainer(model)
     # shap_values = explainer.shap_values(X_train)
