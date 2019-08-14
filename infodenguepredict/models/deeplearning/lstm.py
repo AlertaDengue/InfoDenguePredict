@@ -11,9 +11,9 @@ from matplotlib import pyplot as P
 import keras
 from keras.layers.core import Dense, Activation, Dropout
 from keras.layers.recurrent import LSTM
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.utils.vis_utils import plot_model
-from keras.callbacks import TensorBoard, EarlyStopping
+from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 from keras import backend as K
 from sklearn.metrics import *
 
@@ -24,7 +24,7 @@ from time import time
 #    random_data,
 #    get_city_names,
 #)
-from infodenguepredict.models.deeplearning.preprocessing import (
+from preprocessing import (
     split_data,
     normalize_data,
 )
@@ -40,6 +40,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     :param batch_size: batch size for batch training
     :return:
     """
+    #batch_input_shape=(batch_size, look_back, features)
     inp = keras.Input(shape=(look_back, features), batch_shape=(batch_size, look_back, features))
     x = LSTM(
         hidden,
@@ -145,7 +146,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     start = time()
     model.compile(loss="msle", optimizer="nadam", metrics=["accuracy", "mape", "mse"])
     print("Compilation Time : ", time() - start)
-    plot_model(model, to_file="LSTM_model.png")
+    plot_model(model, to_file="../figures/LSTM_model.png")
     print(model.summary())
     return model
 
@@ -158,6 +159,9 @@ def train(model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwr
         write_images=True,
         # embeddings_freq=10
     )
+    es = EarlyStopping(patience=15)
+    filepath = "trained_{}_model.h5".format(geocode)
+    cp = ModelCheckpoint("trained_{}_model.h5".format(geocode), monitor='val_loss', verbose=0, save_best_only=False, save_weights_only=False, mode='auto', period=1)
 
     hist = model.fit(
         X_train,
@@ -166,11 +170,12 @@ def train(model, X_train, Y_train, batch_size=1, epochs=10, geocode=None, overwr
         nb_epoch=epochs,
         validation_split=0.15,
         verbose=1,
-        callbacks=[TB_callback, EarlyStopping(patience=15)]
+        callbacks=[TB_callback, es, cp]
     )
     with open("history_{}.pkl".format(geocode), "wb") as f:
         pickle.dump(hist.history, f)
-    model.save_weights("trained_{}_model.h5".format(geocode), overwrite=overwrite)
+    #model.save_weights("trained_{}_model.h5".format(geocode), overwrite=overwrite)
+    
     return hist
 
 
@@ -188,7 +193,16 @@ def plot_training_history(hist):
     df_loss.plot(ax=ax, grid=True, logy=True)
     # df_mape.plot(ax=ax, grid=True, logy=True);
     # P.savefig("{}/LSTM_training_history.png".format(FIG_PATH))
-
+    
+def make_predictions_batch(Xdata, model, hidden, features, predict_n, look_back=10, batch_size=1,\
+                         n_pred = 100):
+    pred_model = build_model(hidden, features, predict_n, look_back, batch_size)
+    weights = model.get_weights()
+    pred_model.set_weights(weights)
+    pred_model.compile(loss="msle", optimizer="nadam", metrics=["accuracy", "mape", "mse"])
+    predictions = [pred_model.predict(Xdata,batch_size=batch_size) for i in range(n_pred)]
+    return np.array(predictions)
+ 
 def make_predictions(model, Xdata, n_pred = 100, pred_window = 1, batch_size=1):
     """
     Makes several predictions from a model.
@@ -201,30 +215,31 @@ def make_predictions(model, Xdata, n_pred = 100, pred_window = 1, batch_size=1):
     predictions = [model.predict(Xdata,batch_size=batch_size)[:,:pred_window] for i in range(n_pred)]
     return np.array(predictions)
 
-def plot_quantiles(ax,predictions,Ydata,plot = "median",confidence=95, \
+def plot_quantiles(ax,timestamps, predictions,Ydata,plot = "median",confidence=95, \
                    data_kw={"label": "data","color":"black"}, pred_kw = {"color":"red"},\
                   fill_kw={"color":"blue","alpha":0.3,"label": "95% confidence interval"},\
                    title_kw={"label": "Predictions for Rio de Janeiro","fontsize":20},\
                    xlabel_kw = {"xlabel": "time","fontsize":14},\
                    ylabel_kw={"ylabel":"Incidence","fontsize":14},\
+                   axvline_kw=None,\
                    grid_params={}):
     """
     Plots model predictions
     """
-    
+    x = timestamps
     ax.grid(**grid_params)
-    ax.plot(Ydata,**data_kw)
+    ax.plot(x, Ydata,**data_kw)
     if plot == "median":
         pred_kw["label"] = "median"
-        ax.plot(np.percentile(predictions,50,axis=0),**pred_kw)
+        ax.plot(x, np.percentile(predictions,50,axis=0),**pred_kw)
     elif plot == "mean":
         pred_kw["label"] = "mean"
-        ax.plot(np.mean(predictions,axis=0),**pred_kw)
+        ax.plot(x, np.mean(predictions,axis=0),**pred_kw)
     if confidence is not None:
         delta = (100-confidence)/2
         lower_bound = np.percentile(predictions,delta,axis=0)
         upper_bound = np.percentile(predictions,100-delta,axis=0)
-        x = np.arange(len(lower_bound))
+        #x = np.arange(len(lower_bound))
         ax.fill_between(x,lower_bound,upper_bound,where=upper_bound>=lower_bound,**fill_kw)
     if title_kw is not None:
         ax.set_title(**title_kw)
@@ -232,6 +247,8 @@ def plot_quantiles(ax,predictions,Ydata,plot = "median",confidence=95, \
         ax.set_xlabel(**xlabel_kw)
     if ylabel_kw is not None:
         ax.set_ylabel(**ylabel_kw)
+    if axvline_kw is not None:
+        ax.axvline(**axvline_kw)
     ax.legend()
     return ax
 
