@@ -45,6 +45,7 @@ MANIFEST
 infodenguepredict/data/settings.ini
 infodenguepredict/models/saved_models/*
 infodenguepredict/predict_settings.py
+infodenguepredict/models/deeplearning/tensorboard/
 *.ipynb
 
 #image files
