@@ -67,7 +67,7 @@ def plot_prediction(pred, pred25, pred975, x, ydata, factor, horizon, title, pat
     return None
 
 
-def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, predict=True, doenca='zika'):
+def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, predict=True, doenca='chick'):
     """
     Fit an LSTM model to generate predictions for a city, Using its cluster as regressors.
     :param city: geocode of the target city
@@ -146,4 +146,5 @@ if __name__ == "__main__":
         look_back=LOOK_BACK,
         hidden=HIDDEN,
         epochs=EPOCHS,
+        doenca='chik'
     )
