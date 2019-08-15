@@ -87,61 +87,6 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     )(x)
     model = keras.Model(inp, out)
 
-    # model = Sequential()
-    #
-    # model.add(
-    #     LSTM(
-    #         hidden,
-    #         input_shape=(look_back, features),
-    #         stateful=True,
-    #         batch_input_shape=(batch_size, look_back, features),
-    #         return_sequences=True,
-    #         # activation='relu',
-    #         dropout=0,
-    #         recurrent_dropout=0,
-    #         implementation=2,
-    #         unit_forget_bias=True,
-    #     )
-    # )
-    # model.add(Dropout(0.2))
-    # model.add(
-    #     LSTM(
-    #         hidden,
-    #         input_shape=(look_back, features),
-    #         stateful=True,
-    #         batch_input_shape=(batch_size, look_back, features),
-    #         return_sequences=True,
-    #         # activation='relu',
-    #         dropout=0,
-    #         recurrent_dropout=0,
-    #         implementation=2,
-    #         unit_forget_bias=True,
-    #     )
-    # )
-    # model.add(Dropout(0.2))
-    # model.add(
-    #     LSTM(
-    #         hidden,
-    #         input_shape=(look_back, features),
-    #         stateful=True,
-    #         batch_input_shape=(batch_size, look_back, features),
-    #         # activation='relu',
-    #         dropout=0,
-    #         recurrent_dropout=0,
-    #         implementation=2,
-    #         unit_forget_bias=True,
-    #     )
-    # )
-    # model.add(Dropout(0.2))
-    # model.add(
-    #     Dense(
-    #         predict_n,
-    #         activation="relu",
-    #         kernel_initializer="random_uniform",
-    #         bias_initializer="zeros",
-    #     )
-    # )
-
     start = time()
     model.compile(loss="msle", optimizer="nadam", metrics=["accuracy", "mape", "mse"])
     print("Compilation Time : ", time() - start)
@@ -209,6 +154,7 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
         df_predicted = pd.DataFrame(np.percentile(predicted, 50, axis=2))
         df_predicted25 = pd.DataFrame(np.percentile(predicted, 2.5, axis=2))
         df_predicted975 = pd.DataFrame(np.percentile(predicted, 97.5, axis=2))
+        uncertainty = True
     ymax = max(predicted.max() * factor, Ydata.max() * factor)
     P.vlines(indice[split_point], 0, ymax, "g", "dashdot", lw=2)
     P.text(indice[split_point + 2], 0.6 * ymax, "Out of sample Predictions")
@@ -239,7 +185,7 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     #         )
     #     except IndexError as e:
     #         print(indice.shape, n, df_predicted.shape)
-
+    tag = '_unc' if uncertainty else ''
     P.grid()
     P.title("Predictions for {}".format(label))
     P.xlabel("time")
@@ -247,7 +193,7 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     P.xticks(rotation=70)
     P.legend(["data", "predicted"])
     P.savefig(
-        "../saved_models/LSTM/{}/lstm_{}_ss.png".format(STATE, label),
+        "../saved_models/LSTM/{}/lstm_{}{}.png".format(STATE, label, tag),
         bbox_inches="tight",
         dpi=300,
     )
@@ -326,14 +272,14 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
         predict_n=predict_n,
         Y_column=target_col,
     )
-    print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
+    # print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
     ## Run model
     model = build_model(
         hidden, X_train.shape[2], predict_n=predict_n, look_back=look_back
     )
     if load:
-        model.load_weights("trained_{}_model.h5".format(city))
+        model.load_model("../saved_models/LSTM/{}/lstm_{}_epochs_{}.h5".format(STATE,city, epochs))
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
     model.save('../saved_models/LSTM/{}/lstm_{}_epochs_{}.h5'.format(STATE, city, epochs))
 
@@ -470,9 +416,7 @@ def cluster_prediction(
     return None
 
 
-def state_prediction(
-        state, predictors, predict_n, look_back, hidden, epochs, predict=False
-):
+def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, predict=False):
     clusters = pd.read_pickle("../../analysis/clusters_{}.pkl".format(state))
 
     for cluster in clusters:
