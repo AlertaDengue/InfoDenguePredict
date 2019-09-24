@@ -1,12 +1,10 @@
 import numpy as np
 import pandas as pd
 import os
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import *
 import pickle
 from joblib import dump, load
-import forestci as fci
 import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_cluster_data, get_city_names, combined_data, get_alerta_table
 from infodenguepredict.predict_settings import *
@@ -184,7 +182,7 @@ def qf_prediction(city, state, horizon, lookback):
 
     plot_prediction(preds, preds25, preds975, targets[1], city_name, len(X_train))
 
-    return model, preds, preds25, preds975, X_train, targets, data_lag
+    return model, preds, preds25, preds975, X_train, targets, data_lag, X_data.columns
 
 
 def qf_single_state_prediction(state, lookback, horizon, predictors):
@@ -327,12 +325,25 @@ if __name__ == "__main__":
     # target = 'casos_est_{}'.format(CITY)
     # preds = qf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
     # for STATE in ['RJ', 'PR', 'CE']:
-    # qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
+    qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
     # qf_single_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
 
-    model, preds, preds25, preds975, X_train, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
-                                                                                lookback=LOOK_BACK)
-    # print(model.feature_importances_)
+    # model, preds, preds25, preds975, X_train, targets, data_lag, features = qf_prediction(CITY, STATE,
+    #                                                                                       horizon=PREDICTION_WINDOW,
+    #                                                                                       lookback=LOOK_BACK)
+    #
+    # importances = model.feature_importances_
+    # indices = sorted(importances, reverse=True)
+    # impdf = pd.DataFrame(index=features, data={'imp': importances})
+    # impdf.to_csv('saved_models/quantile_forest/{}/feature_importances_{}.csv'.format(STATE, CITY))
+    #
+    # plt.title('Feature Importances')
+    # plt.barh(range(len(indices))[:10], importances[indices][:10], color='b', align='center')
+    # plt.yticks(range(len(indices))[:10], [features[i] for i in indices][:10])
+    # plt.xlabel('Relative Importance')
+    # plt.savefig('saved_models/quantile_forest/{}/feature_importances_{}.png'.format(STATE, CITY), dpi=200)
+    # plt.show()
+
     # explainer = shap.TreeExplainer(model)
     # shap_values = explainer.shap_values(X_train)
     # shap.force_plot(explainer.expected_value, shap_values, matplotlib=True)

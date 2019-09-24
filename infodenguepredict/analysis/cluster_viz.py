@@ -1,5 +1,5 @@
 import pandas as pd
-import pickle
+import os
 import re
 import holoviews as hv
 
@@ -9,7 +9,14 @@ from infodenguepredict.predict_settings import *
 hv.extension('bokeh')
 
 
-def cluster_viz(geocode, clusters):
+def cluster_viz(geocode, clusters, loginc=False):
+    """
+    Create a heatmap incidence  plot
+    :param geocode: City whose cluster to plot
+    :param clusters: clusters from State
+    :param loginc: whether to use log y scale for incidence
+    :return: Holoviews plot
+    """
     data, group = get_cluster_data(geocode=geocode, clusters=clusters,
                                    data_types=DATA_TYPES, cols=['casos'])
 
@@ -19,9 +26,9 @@ def cluster_viz(geocode, clusters):
     df_hm['city'] = [int(re.sub('casos_', '', i)) for i in df_hm.city]
     df_hm['city'] = [city_names[i] for i in df_hm.city]
 
-#     return df_hm
-    curve_opts = dict(line_width=10, line_alpha=0.4,tools=[])
-    overlay_opts = dict(width=900, height=200,tools=[])
+    #     return df_hm
+    curve_opts = dict(line_width=10, line_alpha=0.4, tools=[], logy=loginc)
+    overlay_opts = dict(width=900, height=200, tools=[])
     hm_opts = dict(width=900, height=500, tools=[], logz=True, invert_yaxis=False, xrotation=90,
                    labelled=[], toolbar=None, xaxis=None)
 
@@ -41,8 +48,9 @@ def cluster_viz(geocode, clusters):
 if __name__ == "__main__":
     renderer = hv.Store.renderers['bokeh']
     renderer.dpi = 600
-
-    for STATE in ['RJ', 'PR', 'CE']:
+    if not os.path.exists('cluster_figs'):
+        os.mkdir('cluster_figs')
+    for STATE in ['ES']:
         clusters = pd.read_pickle('clusters_{}.pkl'.format(STATE))
 
         for c in clusters:
@@ -50,4 +58,3 @@ if __name__ == "__main__":
                 continue
             plot = cluster_viz(c[0], clusters)
             renderer.save(plot, 'cluster_figs/cluster_{}'.format(str(c[0])), 'png')
-
