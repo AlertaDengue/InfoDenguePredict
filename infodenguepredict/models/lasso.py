@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-import os
+import os, pickle
 
 from sklearn.linear_model import LassoLarsCV
 from sklearn.model_selection import train_test_split
@@ -129,28 +129,31 @@ def lasso_single_prediction(city, state, lookback, horizon, predictors):
         preds[:, (d - 1)] = pred
         pred_m = model.predict(X_test[:(len(tgtt))])
         metrics[d] = calculate_metrics(pred_m, tgtt)
-
+    # predicted = np.concatenate((predicted_in, predicted_out), axis=0)
     metrics.to_pickle('{}/{}/lasso_metrics_{}.pkl'.format('saved_models/lasso', state, city))
     plot_prediction(preds, targets[1], city_name, len(X_train))
     return None
 
 
-def lasso_state_prediction(state, lookback, horizon, predictors):
+def lasso_state_prediction(state, lookback, horizon, predictors, rerun=False):
     clusters = pd.read_pickle('../analysis/clusters_{}.pkl'.format(state))
-
+    print("Starting state prection for {}".format(state))
     for cluster in clusters:
         data_full, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
                                             data_types=DATA_TYPES, cols=predictors)
         for city in cluster:
-            if os.path.isfile('saved_models/lasso/{}/lasso_metrics_{}.pkl'.format(state, city)):
+            if os.path.isfile('saved_models/lasso/{}/lasso_metrics_{}.pkl'.format(state, city)) and not rerun:
                 print(city, 'done')
                 continue
 
             target = 'casos_est_{}'.format(city)
             casos_est_columns = ['casos_est_{}'.format(i) for i in group]
             casos_columns = ['casos_{}'.format(i) for i in group]
-
-            data = data_full.drop(casos_columns, axis=1)
+            try:
+                data = data_full.drop(casos_columns, axis=1)
+            except KeyError as e:
+                print(e)
+                data = data_full
             data_lag = build_lagged_features(data, lookback)
             data_lag.dropna()
             targets = {}
@@ -189,10 +192,10 @@ def lasso_state_prediction(state, lookback, horizon, predictors):
                 preds[:, (d - 1)] = pred
                 pred_m = model.predict(X_test[:(len(tgtt))])
                 metrics[d] = calculate_metrics(pred_m, tgtt)
-
+            pickle.dump(preds, open('{}/{}/lasso_predicted_{}.pkl'.format('saved_models/lasso', state, city), 'wb'))
             metrics.to_pickle('{}/{}/lasso_metrics_{}.pkl'.format('saved_models/lasso', state, city))
             plot_prediction(preds, targets[1], city_name, len(X_train))
-            # plt.show()
+            plt.show()
     return None
 
 
@@ -249,6 +252,7 @@ def lasso_single_state_prediction(state, lookback, horizon, predictors):
             metrics[d] = calculate_metrics(pred_m, tgtt)
 
             metrics.to_pickle('{}/{}/lasso_metrics_{}.pkl'.format('saved_models/lasso_no_cluster', state, city))
+        pickle
         plot_prediction(preds, targets[1], city_name, len(X_train), path='lasso_no_cluster')
         # plt.show()
     return None
@@ -258,8 +262,11 @@ def lasso_single_state_prediction(state, lookback, horizon, predictors):
 
 if __name__ == "__main__":
 
-    lasso_single_prediction(CITY, STATE, LOOK_BACK, PREDICTION_WINDOW, predictors=PREDICTORS)
+    # lasso_single_prediction(CITY, STATE, LOOK_BACK, PREDICTION_WINDOW, predictors=PREDICTORS)
 
+
+    lasso_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS, rerun=True)
     # for STATE in ['CE']:
     #     lasso_single_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
     # lasso_single_prediction(4111704, 'PR', LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
+

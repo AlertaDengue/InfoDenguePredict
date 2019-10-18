@@ -22,24 +22,28 @@ def loss_colormap(state, models, metric='mean_squared_error', predict_n=1):
     :return: Plot
     """
 
-    clusters = pd.read_pickle('infodenguepredict/analysis/clusters_{}.pkl'.format(state))
+    clusters = pd.read_pickle('../../analysis/clusters_{}.pkl'.format(state))
     clusters = [y for x in clusters for y in x]
     df = pd.DataFrame(columns=models, index=clusters)
     for city in clusters:
         if 'rf' in models:
-            rf = pd.read_pickle('../resultados_infodengue/random_forest/{}/rf_metrics_{}.pkl'.format(state, city))
+            rf = pd.read_pickle('../saved_models/random_forest/{}/rf_metrics_{}.pkl'.format(state, city))
             df['rf'][city] = rf[predict_n][metric]
         if 'lstm' in models:
-            lstm = pd.read_pickle('../resultados_infodengue/lstm/{}/lstm_metrics_{}.pkl'.format(state, city))
+            lstm = pd.read_pickle('../saved_models/lstm/{}/lstm_metrics_{}.pkl'.format(state, city))
             df['lstm'][city] = lstm[predict_n][metric]
         if 'tpot' in models:
-            tpot = pd.read_pickle('../resultados_infodengue/tpot/{}/tpot_metrics_{}.pkl'.format(state, city))
+            tpot = pd.read_pickle('../saved_models/tpot/{}/tpot_metrics_{}.pkl'.format(state, city))
             df['tpot'][city] = tpot[predict_n][metric]
+        if 'rqf' in models:
+            rqf = pd.read_pickle('../saved_models/quantile_forest/{}/qf_metrics_{}.pkl'.format(state, city))
+            df['rqf'][city] = rqf[predict_n][metric]
 
     df = df[df.columns].astype('float')
     # falta normalizar a data?
     sns_plot = sns.heatmap(df, cmap='vlag')
-    sns_plot.savefig('{}_losses_heatmap.png', dpi=400)
+    plt.savefig('{}_losses_heatmap.png'.format(state), dpi=400)
+    plt.show()
 
     return None
 
@@ -170,3 +174,7 @@ def loss_scatter(state, models, metric='mean_squared_error', predict_n=1):
         plt.legend(models)
 
     return df
+
+
+if __name__ == "__main__":
+    loss_colormap('RJ', ['rqf'])

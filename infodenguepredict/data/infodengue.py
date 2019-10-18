@@ -213,6 +213,39 @@ def get_cluster_data(geocode, clusters, data_types, cols=None, save=False, doenc
 
     return full_data, cluster
 
+def build_lagged_features(dt, lag=2, dropna=True):
+    '''
+    returns a new DataFrame to facilitate regressing over all lagged features.
+    :param dt: Dataframe containing features
+    :param lag: maximum lags to compute
+    :param dropna: if true the initial rows containing NANs due to lagging will be dropped
+    :return: Dataframe
+    '''
+    if type(dt) is pd.DataFrame:
+        new_dict = {}
+        for col_name in dt:
+            new_dict[col_name] = dt[col_name]
+            # create lagged Series
+            for l in range(1, lag + 1):
+                new_dict['%s_lag%d' % (col_name, l)] = dt[col_name].shift(l)
+        res = pd.DataFrame(new_dict, index=dt.index)
+
+    elif type(dt) is pd.Series:
+        the_range = range(lag + 1)
+        res = pd.concat([dt.shift(-i) for i in the_range], axis=1)
+        res.columns = ['lag_%d' % i for i in the_range]
+    else:
+        print('Only works for DataFrame or Series')
+        return None
+    if dropna:
+        return res.dropna()
+    else:
+        return res
+
+def get_feature_list(geocode, clusters, data_types, lags, cols=None, save=False, doenca='dengue'):
+    data = get_cluster_data(geocode, clusters, data_types, cols=cols, save=save, doenca=doenca)
+    ldata = build_lagged_features(data, lag=lags, dropna=True)
+    return ldata.columns
 
 def get_example_table(geocode=None, doenca='dengue'):
     """

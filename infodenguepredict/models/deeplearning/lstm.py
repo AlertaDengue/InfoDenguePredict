@@ -88,7 +88,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     model = keras.Model(inp, out)
 
     start = time()
-    model.compile(loss="msle", optimizer="nadam", metrics=["accuracy", "mape", "mse"])
+    model.compile(loss="msle", optimizer="adam", metrics=["accuracy", "mape", "mse"])
     print("Compilation Time : ", time() - start)
     plot_model(model, to_file="LSTM_model.png")
     print(model.summary())
@@ -135,7 +135,7 @@ def plot_training_history(hist):
     # P.savefig("{}/LSTM_training_history.png".format(FIG_PATH))
 
 
-def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor, split_point=None):
+def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor, split_point=None, uncertainty=False):
     """
     Plot the model's predictions against data
     :param predicted: model predictions
@@ -160,10 +160,11 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     P.text(indice[split_point + 2], 0.6 * ymax, "Out of sample Predictions")
     # plot only the last (furthest) prediction point
     P.plot(indice[7:], Ydata[:, -1] * factor, 'k-', alpha=0.7, label='data')
-    P.plot(indice[7:], df_predicted[df_predicted.columns[-1]] * factor, 'r-', alpha=0.5, label='median')
-    P.fill_between(indice[7:], df_predicted25[df_predicted25.columns[-1]] * factor,
-                   df_predicted975[df_predicted975.columns[-1]] * factor,
-                   color='b', alpha=0.3)
+    P.plot(indice[7:], df_predicted.iloc[-1,:] * factor, 'r-', alpha=0.5, label='median')
+    if uncertainty:
+        P.fill_between(indice[7:], df_predicted25[df_predicted25.columns[-1]] * factor,
+                       df_predicted975[df_predicted975.columns[-1]] * factor,
+                       color='b', alpha=0.3)
 
     # plot all predicted points
     # P.plot(indice[pred_window:], pd.DataFrame(Ydata)[7] * factor, 'k-')
@@ -293,12 +294,16 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
         pout = np.percentile(predicted_out, 50, axis=2)
     else:
         pout = predicted_out
-    metrics = calculate_metrics(pout, Y_test, factor)
-    metrics.to_pickle(
-        "../saved_models/LSTM/{}/metrics_lstm_{}_8pw.pkl".format(STATE, city)
-    )
+    if ratio < 1:
+        metrics = calculate_metrics(pout, Y_test, factor)
+        metrics.to_pickle(
+            "../saved_models/LSTM/{}/metrics_lstm_{}_8pw.pkl".format(STATE, city)
+        )
 
-    predicted = np.concatenate((predicted_in, predicted_out), axis=0)
+    if ratio < 1:
+        predicted = np.concatenate((predicted_in, predicted_out), axis=0)
+    else:  # In this case there is no Test set (ratio=1)
+        predicted = predicted_in
     with open(
             "../saved_models/LSTM/{}/predicted_lstm_{}_8pw.pkl".format(STATE, city), "wb"
     ) as f:
@@ -416,7 +421,7 @@ def cluster_prediction(
     return None
 
 
-def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, predict=False):
+def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, predict=False, uncertainty=True):
     clusters = pd.read_pickle("../../analysis/clusters_{}.pkl".format(state))
 
     for cluster in clusters:
@@ -442,7 +447,7 @@ def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, pr
                 ratio = 0.7
 
             predicted, X_test, Y_test, Y_train, factor = train_evaluate_model(
-                city, data, predict_n, look_back, hidden, epochs, ratio=ratio
+                city, data, predict_n, look_back, hidden, epochs, ratio=ratio, uncertainty=uncertainty
             )
             plot_predicted_vs_data(
                 predicted,
@@ -452,6 +457,7 @@ def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, pr
                 pred_window=predict_n,
                 factor=factor,
                 split_point=len(Y_train),
+                uncertainty=uncertainty
             )
             print("{} done".format(city))
     return None
@@ -460,15 +466,17 @@ def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, pr
 if __name__ == "__main__":
     # K.set_epsilon(1e-5)
 
-    predicted, indice, X_test, Y_test, Y_train, factor = single_prediction(
-        CITY,
-        STATE,
-        PREDICTORS,
-        predict_n=PREDICTION_WINDOW,
-        look_back=LOOK_BACK,
-        hidden=HIDDEN,
-        epochs=EPOCHS,
-    )
+    # predicted, indice, X_test, Y_test, Y_train, factor = single_prediction(
+    #     CITY,
+    #     STATE,
+    #     PREDICTORS,
+    #     predict_n=PREDICTION_WINDOW,
+    #     look_back=LOOK_BACK,
+    #     hidden=HIDDEN,
+    #     epochs=EPOCHS,
+    # )
 
     # cluster_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK, hidden=HIDDEN,
     #                    epochs=EPOCHS)
+
+    state_prediction(STATE,PREDICTORS, PREDICTION_WINDOW, LOOK_BACK, HIDDEN, EPOCHS, False, uncertainty=False)
