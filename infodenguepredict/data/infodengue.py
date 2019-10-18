@@ -243,7 +243,7 @@ def build_lagged_features(dt, lag=2, dropna=True):
         return res
 
 def get_feature_list(geocode, clusters, data_types, lags, cols=None, save=False, doenca='dengue'):
-    data = get_cluster_data(geocode, clusters, data_types, cols=cols, save=save, doenca=doenca)
+    data, _ = get_cluster_data(geocode, clusters, data_types, cols=cols, save=save, doenca=doenca)
     ldata = build_lagged_features(data, lag=lags, dropna=True)
     return ldata.columns
 
