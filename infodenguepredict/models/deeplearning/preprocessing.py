@@ -42,6 +42,7 @@ def normalize_data(df, log_transform=False):
     :param df:
     :return:
     """
+
     if 'municipio_geocodigo' in df.columns:
         df.pop('municipio_geocodigo')
 
@@ -51,7 +52,7 @@ def normalize_data(df, log_transform=False):
             le = LabelEncoder()
             le.fit(df[col])
             df[col] = le.transform(df[col])
-
+    df.fillna(0, inplace=True)
     norm = normalize(df, norm='max', axis=0)
     if log_transform==True:
         norm = np.log(norm)

@@ -62,32 +62,15 @@ def qf_prediction(city, state, horizon, lookback, doenca='chik'):
 
 
     city_name = get_city_names([city, 0])[0][1]
-    preds = np.empty((len(data_lag), horizon))
-    preds25 = np.empty((len(data_lag), horizon))
-    preds975 = np.empty((len(data_lag), horizon))
-    metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
-                                  'mean_squared_error', 'mean_squared_log_error',
-                                  'median_absolute_error', 'r2_score'))
-    # for d in range(1, horizon + 1):
-    #     tgtt = targets[d][len(X_data):]
-    #     # Load dengue model
+
+
+    #  Load dengue model
     model = joblib.load('saved_models/quantile_forest/{}/{}_city_model_{}W.joblib'.format(state, city, horizon))
     pred25 = model.predict(X_data, quantile=2.5)
     pred = model.predict(X_data, quantile=50)
     pred975 = model.predict(X_data, quantile=97.5)
 
-        # dif = len(data_lag) - len(pred)
-        # if dif > 0:
-        #     pred = list(pred) + ([np.nan] * dif)
-        #     pred25 = list(pred25) + ([np.nan] * dif)
-        #     pred975 = list(pred975) + ([np.nan] * dif)
-        # preds[:, (d - 1)] = pred
-        # preds25[:, (d - 1)] = pred25
-        # preds975[:, (d - 1)] = pred975
 
-
-        # metrics[d] = calculate_metrics(preds, tgtt)
-    # print(metrics)
 
     # metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest', state, city))
     plot_prediction(pred, pred25, pred975, targets[1], horizon, city_name, save=True, doenca=doenca)

@@ -11,6 +11,9 @@ STATE = 'RJ'
 # Possible types: 'alerta', 'weather', 'tweet'
 DATA_TYPES = ['alerta', 'weather']
 
+# Disease to predict
+DISEASE = 'dengue'
+
 #=======Clustering parameters========
 # Variables to include in the correlation distance
 CLUSTER_VARS = [
