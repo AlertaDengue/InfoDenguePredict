@@ -89,7 +89,7 @@ def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='qu
 
     pred_window = preds.shape[1]
     llist = range(len(ydata.index) - (preds.shape[1]))
-    print(type(preds))
+    # print(type(preds))
 
     # # for figure with all predicted points
     # for n in llist:
@@ -301,6 +301,7 @@ def qf_state_prediction(state, lookback, horizon, predictors):
                 tgtt = targets[d][len(X_train):]
 
                 model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
+                dump(model, 'saved_models/quantile_forest/{}/{}_city_model_{}W.joblib'.format(state, city, d))
                 pred = model.predict(X_data[:len(targets[d])], quantile=50)
                 pred25 = model.predict(X_data[:len(targets[d])], quantile=2.5)
                 pred975 = model.predict(X_data[:len(targets[d])], quantile=97.5)
@@ -327,11 +328,11 @@ if __name__ == "__main__":
     # target = 'casos_est_{}'.format(CITY)
     # preds = qf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
     # for STATE in ['RJ', 'PR', 'CE']:
-    # qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
+    qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
     # qf_single_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
 
-    model, preds, preds25, preds975, X_train, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
-                                                                                lookback=LOOK_BACK)
+    # model, preds, preds25, preds975, X_train, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
+    #                                                                             lookback=LOOK_BACK)
     # print(model.feature_importances_)
     # explainer = shap.TreeExplainer(model)
     # shap_values = explainer.shap_values(X_train)
