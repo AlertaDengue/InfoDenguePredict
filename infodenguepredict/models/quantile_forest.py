@@ -149,7 +149,7 @@ def qf_prediction(city, state, horizon, lookback):
 
     X_data = data_lag.drop(casos_est_columns, axis=1)
     X_train, X_test, y_train, y_test = train_test_split(X_data, data_lag[target],
-                                                        train_size=0.7, test_size=0.3, shuffle=False)
+                                                        train_size=SPLIT, test_size=1-SPLIT, shuffle=False)
 
     city_name = get_city_names([city, 0])[0][1]
     preds = np.empty((len(data_lag), horizon))
@@ -223,7 +223,7 @@ def qf_single_state_prediction(state, lookback, horizon, predictors):
 
         X_data = data_lag.drop(target, axis=1)
         X_train, X_test, y_train, y_test = train_test_split(X_data, data_lag[target],
-                                                            train_size=0.7, test_size=0.3, shuffle=False)
+                                                            train_size=SPLIT, test_size=1-SPLIT, shuffle=False)
 
         city_name = get_city_names([city, 0])[0][1]
         preds = np.empty((len(data_lag), horizon))
@@ -286,8 +286,11 @@ def qf_state_prediction(state, lookback, horizon, predictors):
                     targets[d] = data_lag[target].shift(-(d - 1))[:-(d - 1)]
 
             X_data = data_lag.drop(casos_est_columns, axis=1)
+            if len(X_data) == 0:
+                print(f"No data available for {city}, {state}")
+                continue
             X_train, X_test, y_train, y_test = train_test_split(X_data, data_lag[target],
-                                                                train_size=0.7, test_size=0.3, shuffle=False)
+                                                                train_size=SPLIT, test_size=1-SPLIT, shuffle=False)
 
             city_name = get_city_names([city, 0])[0][1]
             preds = np.empty((len(data_lag), horizon))
