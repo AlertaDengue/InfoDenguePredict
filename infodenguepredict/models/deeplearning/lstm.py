@@ -8,13 +8,13 @@ import shap
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Tesla K40
 
 from matplotlib import pyplot as P
-import keras
-from keras.layers.core import Dense, Activation, Dropout
-from keras.layers.recurrent import LSTM
-from keras.models import Sequential
-from keras.utils.vis_utils import plot_model
-from keras.callbacks import TensorBoard, EarlyStopping
-from keras import backend as K
+import tensorflow.keras as  keras
+from tensorflow.keras.layers import Dense, Activation, Dropout
+from tensorflow.keras.layers import LSTM
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.utils import plot_model
+from tensorflow.keras.callbacks import TensorBoard, EarlyStopping
+from tensorflow.keras import backend as K
 from sklearn.metrics import *
 
 from time import time
