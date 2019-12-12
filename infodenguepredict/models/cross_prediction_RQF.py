@@ -76,7 +76,7 @@ def qf_prediction(city, state, horizon, lookback, doenca='chik'):
 
 if __name__ == "__main__":
     doença = 'chik'
-    STATE = 'CE'
+    STATE = 'RJ'
     if STATE == 'RJ':
         cities = [3304557, 3303500, 3301009, 3304904]
     elif STATE == 'CE':
