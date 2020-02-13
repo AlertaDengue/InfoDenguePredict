@@ -334,8 +334,8 @@ if __name__ == "__main__":
     qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
     # qf_single_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
 
-    # model, preds, preds25, preds975, X_train, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
-    #                                                                             lookback=LOOK_BACK)
+    model, preds, preds25, preds975, X_train, targets, data_lag = qf_prediction(CITY, STATE, horizon=PREDICTION_WINDOW,
+                                                                                lookback=LOOK_BACK)
     # print(model.feature_importances_)
     # explainer = shap.TreeExplainer(model)
     # shap_values = explainer.shap_values(X_train)

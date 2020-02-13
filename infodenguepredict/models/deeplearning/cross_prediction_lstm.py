@@ -2,22 +2,24 @@
 This script performs LSTM cross-disease predictions for a single city only.
 """
 import numpy as np
+import scipy.stats as ss
 import pandas as pd
 import pickle
 import math
 import os
+import datetime
 import shap
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # Tesla K40
 
 from matplotlib import pyplot as P
-import keras
-from keras.layers.core import Dense, Activation, Dropout
-from keras.layers.recurrent import LSTM
-from keras.models import Sequential, load_model
-from keras.utils.vis_utils import plot_model
-from keras.callbacks import TensorBoard, EarlyStopping
-from keras import backend as K
+import tensorflow.keras as keras
+from tensorflow.keras.layers import Dense, Activation, Dropout
+from tensorflow.keras.layers import LSTM
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.utils import plot_model
+from tensorflow.keras.callbacks import TensorBoard, EarlyStopping
+from tensorflow.keras import backend as K
 from sklearn.metrics import *
 import matplotlib.pyplot as plt
 
@@ -36,8 +38,8 @@ from infodenguepredict.predict_settings import *
 
 
 def plot_prediction(pred, pred25, pred975, x, ydata, factor, horizon, title, path='LSTM', save=True, doenca='chik'):
-    plt.clf()
-    plt.plot(ydata, 'k-', label='data')
+    plt.close()
+    # plt.plot(ydata, 'k-', label='data')
     x = x[7:]
     pred['date'] = pd.to_datetime(x)
     pred.set_index('date', inplace=True)
@@ -46,23 +48,25 @@ def plot_prediction(pred, pred25, pred975, x, ydata, factor, horizon, title, pat
     pred975['date'] = pd.to_datetime(x)
     pred975.set_index('date', inplace=True)
     # x = ydata.index.shift(horizon, freq='W')
-    plt.plot(x, ydata[:, -1] * factor, 'k-', alpha=0.7, label='data')
-    plt.plot(x, pred[3].values * factor, 'r-', alpha=0.5, label='median')
-    plt.fill_between(x, pred25[3].values * factor,
-                   pred975[3].values * factor,
-                   color='b', alpha=0.3)
+    x = pred.index.values
+    fig, ax = plt.subplots()
 
-
+    ax.plot(x, ydata[:, -1] * factor, 'k-', alpha=0.7, label='data')
+    ax.plot(x, pred[3].values * factor, 'r-', alpha=0.5, label='median')
+    ax.fill_between(x, pred25[3].values * factor,
+                     pred975[3].values * factor,
+                     color='b', alpha=0.3)
+    fig.autofmt_xdate()
     plt.grid()
-    plt.ylabel('Weekly cases')
-    plt.title('LSTM {} cross-predictions for {}'.format(doenca, title))
+    ax.set_ylabel('Weekly cases')
+    ax.set_title('LSTM {} cross-predictions for {}'.format(doenca, title))
     # plt.xticks(rotation=70)
     plt.legend(loc=0)
     if save:
         if not os.path.exists('../saved_models/' + path + '/' + STATE):
             os.mkdir('../saved_models/' + path + '/' + STATE)
 
-        plt.savefig('../saved_models/{}/{}/lstm_{}_cross_{}_.png'.format(path, STATE, doenca, title), dpi=300)
+        plt.savefig('../saved_models/{}/{}/lstm_{}_cross_{}.png'.format(path, STATE, doenca, title), dpi=300)
     plt.show()
     return None
 
@@ -132,13 +136,13 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
         doenca=doenca
     )
 
-    return predicted, indice, X_test, Y_test, Y_train, factor
+    return df_predicted, df_predicted25, df_predicted975, indice, X_test, Y_test, X_train, Y_train, factor
 
 
 if __name__ == "__main__":
     # K.set_epsilon(1e-5)
-
-    predicted, indice, X_test, Y_test, Y_train, factor = single_prediction(
+    doença='zika'
+    predicted, preds25, preds975, indice, X_test, Y_test, X_train, Y_train, factor = single_prediction(
         CITY,
         STATE,
         PREDICTORS,
@@ -146,5 +150,7 @@ if __name__ == "__main__":
         look_back=LOOK_BACK,
         hidden=HIDDEN,
         epochs=EPOCHS,
-        doenca='chik'
+        doenca=doença
     )
+    with open(f'../saved_models/LSTM/{STATE}/{CITY}_cross_{doença}_predictions.pkl', 'wb') as f:
+        pickle.dump({'xdata': X_train, 'target': Y_train, 'pred': predicted, 'ub': preds975, 'lb': preds25}, f)

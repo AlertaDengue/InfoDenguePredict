@@ -10,6 +10,7 @@ import statsmodels.api as sm
 from datetime import datetime
 import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_alerta_table, get_cluster_data
+from infodenguepredict.predict_settings import *
 
 
 def build_model(data, endog, exog, **kwargs):
@@ -36,8 +37,9 @@ if __name__ == "__main__":
     with open('clusters_{}.pkl'.format(state), 'rb') as fp:
         clusters = pickle.load(fp)
 
-    data, cluster_n = get_cluster_data(city, clusters)
-    label = 'casos_{}'.format(city)
+    data, cluster_n = get_cluster_data(city, clusters,data_types=DATA_TYPES, cols=PREDICTORS)
+    data.to_csv(f'{state}_cluster_data.csv.gz')
+    label = 'casos_est_{}'.format(city)
     features = list(data.columns)
     features.remove(label)
 
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     plt.fill_between(predict_ci.index, predict_ci.ix[:, 0], predict_ci.ix[:, 1], color='r', alpha=0.1)
     # plt.fill_between(predictdy_ci.index, predictdy_ci.ix[:, 0], predictdy_ci.ix[:, 1], color='g', alpha=0.1)
     plt.legend(loc=0)
-    plt.savefig('sarimax_prediction.jpg')
+    plt.savefig('sarimax_prediction.png')
 
     ## Forecast
     # forecast = fit.get_prediction(start='2017-05-21', end='2017-09-21', dynamic=False)

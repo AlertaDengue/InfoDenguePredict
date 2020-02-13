@@ -16,24 +16,26 @@ from skgarden import RandomForestQuantileRegressor
 
 def plot_prediction(pred, pred25, pred975, ydata, horizon, title, path='quantile_forest', save=True, doenca='chik'):
     plt.clf()
-    plt.plot(ydata, 'k-', label='data')
+    fig, ax = plt.subplots()
+    ax.plot(ydata, 'k-', label='data')
 
     x = ydata.index.shift(horizon, freq='W')
-    plt.plot(x, pred, 'r-', alpha=0.5, label='median prediction')
+    ax.plot(x, pred, 'r-', alpha=0.5, label='median prediction')
     # plt.plot(x, y25, 'b-', alpha=0.3)
     # plt.plot(x, y975, 'b-', alpha=0.3)
-    plt.fill_between(x, pred25, pred975, color='b', alpha=0.3)
+    ax.fill_between(x, pred25, pred975, color='b', alpha=0.3)
 
+    fig.autofmt_xdate()
     plt.grid()
-    plt.ylabel('Weekly cases')
-    plt.title('{} cross-predictions for {}'.format(doenca, title))
-    plt.xticks(rotation=70)
+    ax.set_ylabel('Weekly cases')
+    ax.set_title('{} RQF cross-predictions for {}'.format(doenca, title))
+    # plt.xticks(rotation=70)
     plt.legend(loc=0)
     if save:
         if not os.path.exists('saved_models/' + path + '/' + STATE):
             os.mkdir('saved_models/' + path + '/' + STATE)
 
-        plt.savefig('saved_models/{}/{}/qf_{}_cross_{}_.png'.format(path, STATE, doenca, title), dpi=300)
+        plt.savefig('saved_models/{}/{}/qf_{}_cross_{}.png'.format(path, STATE, doenca, title), dpi=300)
     plt.show()
     return None
 
@@ -78,13 +80,13 @@ if __name__ == "__main__":
     doença = 'chik'
     STATE = 'RJ'
     if STATE == 'RJ':
-        cities = [3304557, 3303500, 3301009, 3304904]
+        cities = [3304557]#, 3303500, 3301009, 3304904]
     elif STATE == 'CE':
-        cities = [2304400, 2307650]
+        cities = [2304400]#, 2307650]
     for CITY in cities:
         model, preds, preds25, preds975, X_data, targets, data_lag = qf_prediction(CITY, STATE,
                                                                                    horizon=PREDICTION_WINDOW,
                                                                                    lookback=LOOK_BACK, doenca=doença)
         # Save cross-predictions
-        with open(f'saved_models/quantile_forest/{STATE}/{CITY}_cross_{doença}_preditions.pkl','wb') as f:
+        with open(f'saved_models/quantile_forest/{STATE}/{CITY}_cross_{doença}_predictions.pkl','wb') as f:
             pickle.dump({'xdata': X_data, 'target': targets, 'pred': preds, 'ub': preds975, 'lb': preds25}, f)

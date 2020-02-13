@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.stats as ss
 import pandas as pd
 import pickle
 import math
@@ -40,11 +41,14 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     :param batch_size: batch size for batch training
     :return:
     """
-    inp = keras.Input(shape=(look_back, features), batch_shape=(batch_size, look_back, features))
+    inp = keras.Input(
+        shape=(look_back, features),
+        # batch_shape=(batch_size, look_back, features)
+    )
     x = LSTM(
         hidden,
         input_shape=(look_back, features),
-        stateful=True,
+        stateful=False,
         batch_input_shape=(batch_size, look_back, features),
         return_sequences=True,
         # activation='relu',
@@ -57,7 +61,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     x = LSTM(
         hidden,
         input_shape=(look_back, features),
-        stateful=True,
+        stateful=False,
         batch_input_shape=(batch_size, look_back, features),
         return_sequences=True,
         # activation='relu',
@@ -70,7 +74,7 @@ def build_model(hidden, features, predict_n, look_back=10, batch_size=1):
     x = LSTM(
         hidden,
         input_shape=(look_back, features),
-        stateful=True,
+        stateful=False,
         batch_input_shape=(batch_size, look_back, features),
         # activation='relu',
         dropout=0.1,
@@ -159,8 +163,8 @@ def plot_predicted_vs_data(predicted, Ydata, indice, label, pred_window, factor,
     P.vlines(indice[split_point], 0, ymax, "g", "dashdot", lw=2)
     P.text(indice[split_point + 2], 0.6 * ymax, "Out of sample Predictions")
     # plot only the last (furthest) prediction point
-    P.plot(indice[7:], Ydata[:, -1] * factor, 'k-', alpha=0.7, label='data')
-    P.plot(indice[7:], df_predicted.iloc[-1,:] * factor, 'r-', alpha=0.5, label='median')
+    P.plot(indice[len(indice)-Ydata.shape[0]:], Ydata[:, -1] * factor, 'k-', alpha=0.7, label='data')
+    P.plot(indice[len(indice)-Ydata.shape[0]:], df_predicted.iloc[:,-1] * factor, 'r-', alpha=0.5, label='median')
     if uncertainty:
         P.fill_between(indice[7:], df_predicted25[df_predicted25.columns[-1]] * factor,
                        df_predicted975[df_predicted975.columns[-1]] * factor,
@@ -280,7 +284,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
         hidden, X_train.shape[2], predict_n=predict_n, look_back=look_back
     )
     if load:
-        model.load_model("../saved_models/LSTM/{}/lstm_{}_epochs_{}.h5".format(STATE,city, epochs))
+        model.load_model("../saved_models/LSTM/{}/lstm_{}_epochs_{}.h5".format(STATE, city, epochs))
     history = train(model, X_train, Y_train, batch_size=1, epochs=epochs, geocode=city)
     model.save('../saved_models/LSTM/{}/lstm_{}_epochs_{}.h5'.format(STATE, city, epochs))
 
@@ -312,7 +316,7 @@ def train_evaluate_model(city, data, predict_n, look_back, hidden, epochs, ratio
     return predicted, X_test, Y_test, Y_train, factor
 
 
-def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, predict=False):
+def single_prediction(city, state, predictors, predict_n, look_back, hidden, epochs, predict=False, uncertainty=True):
     """
     Fit an LSTM model to generate predictions for a city, Using its cluster as regressors.
     :param city: geocode of the target city
@@ -341,7 +345,7 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
         ratio = 0.7
 
     predicted, X_test, Y_test, Y_train, factor = train_evaluate_model(
-        city, data, predict_n, look_back, hidden, epochs, ratio=ratio, load=False
+        city, data, predict_n, look_back, hidden, epochs, ratio=ratio, load=False, uncertainty=uncertainty
     )
     plot_predicted_vs_data(
         predicted,
@@ -351,14 +355,13 @@ def single_prediction(city, state, predictors, predict_n, look_back, hidden, epo
         pred_window=predict_n,
         factor=factor,
         split_point=len(Y_train),
+        uncertainty=uncertainty
     )
 
     return predicted, indice, X_test, Y_test, Y_train, factor
 
 
-def cluster_prediction(
-        geocode, state, predictors, predict_n, look_back, hidden, epochs
-):
+def cluster_prediction(geocode, state, predictors, predict_n, look_back, hidden, epochs, uncertainty=True):
     """
     Fit an LSTM model to generate predictions for all cities from a cluster, Using its cluster as regressors.
     :param city: geocode of the target city
@@ -388,7 +391,7 @@ def cluster_prediction(
         print(city)
         city_name = get_city_names([city, 0])[0][1]
         predicted, X_test, Y_test, Y_train, factor = train_evaluate_model(
-            city, data, predict_n, look_back, hidden, epochs
+            city, data, predict_n, look_back, hidden, epochs, uncertainty=uncertainty
         )
 
         ## plot
@@ -422,6 +425,18 @@ def cluster_prediction(
 
 
 def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, predict=False, uncertainty=True):
+    """
+    Train and predict for all models within a state. Sort of a batch version of Single prediction
+    :param state:
+    :param predictors:
+    :param predict_n:
+    :param look_back:
+    :param hidden:
+    :param epochs:
+    :param predict:
+    :param uncertainty:
+    :return:
+    """
     clusters = pd.read_pickle("../../analysis/clusters_{}.pkl".format(state))
 
     for cluster in clusters:
@@ -466,17 +481,17 @@ def state_prediction(state, predictors, predict_n, look_back, hidden, epochs, pr
 if __name__ == "__main__":
     # K.set_epsilon(1e-5)
 
-    # predicted, indice, X_test, Y_test, Y_train, factor = single_prediction(
-    #     CITY,
-    #     STATE,
-    #     PREDICTORS,
-    #     predict_n=PREDICTION_WINDOW,
-    #     look_back=LOOK_BACK,
-    #     hidden=HIDDEN,
-    #     epochs=EPOCHS,
-    # )
+    predicted, indice, X_test, Y_test, Y_train, factor = single_prediction(
+        CITY,
+        STATE,
+        PREDICTORS,
+        predict_n=PREDICTION_WINDOW,
+        look_back=LOOK_BACK,
+        hidden=HIDDEN,
+        epochs=EPOCHS,
+    )
 
     # cluster_prediction(CITY, STATE, PREDICTORS, predict_n=PREDICTION_WINDOW, look_back=LOOK_BACK, hidden=HIDDEN,
     #                    epochs=EPOCHS)
 
-    state_prediction(STATE,PREDICTORS, PREDICTION_WINDOW, LOOK_BACK, HIDDEN, EPOCHS, False, uncertainty=False)
+    # state_prediction(STATE,PREDICTORS, PREDICTION_WINDOW, LOOK_BACK, HIDDEN, EPOCHS, False, uncertainty=False)
