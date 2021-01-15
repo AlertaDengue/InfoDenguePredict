@@ -6,12 +6,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import *
 import pickle
 from joblib import dump, load
-# import forestci as fci
+
 import matplotlib.pyplot as plt
 from infodenguepredict.data.infodengue import get_cluster_data, get_city_names, combined_data, get_alerta_table
 from infodenguepredict.predict_settings import *
-from skgarden import RandomForestQuantileRegressor
+
 import shap
+import lightgbm as lgb
 
 
 def get_cities_from_state(state):
@@ -20,10 +21,27 @@ def get_cities_from_state(state):
     return cities_list
 
 
-def build_model(**kwargs):
-    model = RandomForestQuantileRegressor(random_state=0, min_samples_split=10, n_estimators=1000, n_jobs=-1,
-                                          warm_start=False)
+def build_model(alpha=0.5, **kwargs):
+    '''
+    Return an LGBM model for the quantile specified in alpha
+    :param alpha: quantile to regress for,
+    :param kwargs:
+    :return: LGBMRegressor model
+    '''
+    lgb_params = {
+        'n_jobs': -1,
+        'max_depth': 4,
+        'min_data_in_leaf': 10,
+        'subsample': 0.9,
+        'n_estimators': 80,
+        'learning_rate': 0.1,
+        'colsample_bytree': 0.9,
+        'boosting_type': 'gbdt'
+    }
+
+    model = lgb.LGBMRegressor(objective='quantile', alpha=alpha, **lgb_params)
     return model
+
 
 
 
@@ -58,7 +76,7 @@ def build_lagged_features(dt, lag=2, dropna=True):
         return res
 
 
-def rolling_forecasts(data, target, window=12, horizon=1):
+def rolling_forecasts(data, target, quantile=0.5, window=12, horizon=1):
     """
     Fits the rolling forecast model
     :param data: feature Dataframe
@@ -67,7 +85,7 @@ def rolling_forecasts(data, target, window=12, horizon=1):
     :param target: variable to be forecasted
     :return:
     """
-    model = build_model()
+    model = build_model(alpha=quantile)
     model.fit(data.values, target)
 
     return model
@@ -75,11 +93,11 @@ def rolling_forecasts(data, target, window=12, horizon=1):
 
 def calculate_metrics(pred, ytrue):
     return [mean_absolute_error(ytrue, pred, ), explained_variance_score(ytrue, pred),
-            mean_squared_error(ytrue, pred), mean_squared_log_error(ytrue, pred),
+            mean_squared_error(ytrue, pred),
             median_absolute_error(ytrue, pred), r2_score(ytrue, pred)]
 
 
-def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='quantile_forest', save=True):
+def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='quantile_lgbm', save=True):
     plt.clf()
     plt.plot(ydata, 'k-', label='data')
 
@@ -125,18 +143,18 @@ def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='qu
         if not os.path.exists('saved_models/' + path + '/' + STATE):
             os.mkdir('saved_models/' + path + '/' + STATE)
 
-        plt.savefig('saved_models/{}/{}/qf_{}_ss.png'.format(path, STATE, title), dpi=300)
+        plt.savefig(f'saved_models/{path}/{STATE}/qlgbm_{title}_ss.png', dpi=300)
     plt.show()
     return None
 
 
 def qf_prediction(city, state, horizon, lookback):
-    with open('../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
+    with open(f'../analysis/clusters_{state}.pkl', 'rb') as fp:
         clusters = pickle.load(fp)
     data, group = get_cluster_data(city, clusters=clusters, data_types=DATA_TYPES, cols=PREDICTORS, doenca=DISEASE)
 
-    target = 'casos_est_{}'.format(city)
-    casos_est_columns = ['casos_est_{}'.format(i) for i in group]
+    target = f'casos_est_{city}'
+    casos_est_columns = [f'casos_est_{i}' for i in group]
     # casos_columns = ['casos_{}'.format(i) for i in group]
 
     # data = data_full.drop(casos_columns, axis=1)
@@ -158,17 +176,19 @@ def qf_prediction(city, state, horizon, lookback):
     preds25 = np.empty((len(data_lag), horizon))
     preds975 = np.empty((len(data_lag), horizon))
     metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
-                                  'mean_squared_error', 'mean_squared_log_error',
+                                  'mean_squared_error'
                                   'median_absolute_error', 'r2_score'))
     for d in range(1, horizon + 1):
         tgt = targets[d][:len(X_train)]
         tgtt = targets[d][len(X_train):]
 
-        model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
-        dump(model, 'saved_models/quantile_forest/{}/{}_city_model_{}W.joblib'.format(state, city, d))
-        pred25 = model.predict(X_data[:len(targets[d])], quantile=2.5)
-        pred = model.predict(X_data[:len(targets[d])], quantile=50)
-        pred975 = model.predict(X_data[:len(targets[d])], quantile=97.5)
+        model25 = rolling_forecasts(X_train, target=tgt, quantile=0.025, horizon=horizon)
+        model50 = rolling_forecasts(X_train, target=tgt, quantile=0.5, horizon=horizon)
+        model975 = rolling_forecasts(X_train, target=tgt, quantile=0.975, horizon=horizon)
+        # dump(model, f'saved_models/quantile_lgbm/{state}/{city}_city_model_{d}W.joblib')
+        pred25 = model25.predict(X_data[:len(targets[d])])
+        pred = model50.predict(X_data[:len(targets[d])])
+        pred975 = model975.predict(X_data[:len(targets[d])])
 
         dif = len(data_lag) - len(pred)
         if dif > 0:
@@ -179,19 +199,19 @@ def qf_prediction(city, state, horizon, lookback):
         preds25[:, (d - 1)] = pred25
         preds975[:, (d - 1)] = pred975
 
-        pred_m = model.predict(X_test[(d - 1):], quantile=50)
+        pred_m = model50.predict(X_test[(d - 1):])
         metrics[d] = calculate_metrics(pred_m, tgtt)
 
-    metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest', state, city))
+    metrics.to_pickle(f'saved_models/quantile_lgbm/{state}/qlgbm_metrics_{city}.pkl')
 
     plot_prediction(preds, preds25, preds975, targets[1], city_name, len(X_train))
 
-    return model, preds, preds25, preds975, X_train, targets, data_lag
+    return model50, preds, preds25, preds975, X_train, targets, data_lag
 
 
 def qf_single_state_prediction(state, lookback, horizon, predictors):
     """
-    RQF WITHOUT CLUSTER SERIES
+    QLGBM WITHOUT CLUSTER SERIES
     :param state: 2-letter code for state
     :param lookback: number of steps of history to use
     :param horizon: number of weeks ahead to predict
@@ -206,7 +226,7 @@ def qf_single_state_prediction(state, lookback, horizon, predictors):
     cities = list(get_cities_from_state(s))
 
     for city in cities:
-        if os.path.isfile('/saved_models/quantile_forest_no_cluster/{}/qf_metrics_{}.pkl'.format(state, city)):
+        if os.path.isfile(f'/saved_models/quantile_lgbm_no_cluster/{state}/qlgbm_metrics_{city}.pkl'):
             print(city, 'done')
             continue
         data = combined_data(city, DATA_TYPES)
@@ -230,13 +250,14 @@ def qf_single_state_prediction(state, lookback, horizon, predictors):
         city_name = get_city_names([city, 0])[0][1]
         preds = np.empty((len(data_lag), horizon))
         metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
-                                      'mean_squared_error', 'mean_squared_log_error',
+                                      'mean_squared_error'
                                       'median_absolute_error', 'r2_score'))
         for d in range(1, horizon + 1):
             tgt = targets[d][:len(X_train)]
             tgtt = targets[d][len(X_train):]
 
-            model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
+
+            model = rolling_forecasts(X_train, target=tgt, quantile=0.5, horizon=horizon)
             pred = model.predict(X_data[:len(targets[d])], quantile=50)
 
             dif = len(data_lag) - len(pred)
@@ -247,7 +268,7 @@ def qf_single_state_prediction(state, lookback, horizon, predictors):
             pred_m = model.predict(X_test[(d - 1):])
             metrics[d] = calculate_metrics(pred_m, tgtt)
 
-        metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest_no_cluster', state, city))
+        metrics.to_pickle('{}/{}/qlgbm_metrics_{}.pkl'.format('saved_models/quantile_lgbm_no_cluster', state, city))
         plot_prediction(preds, targets[1], city_name, len(X_train))
         # plt.show()
 
@@ -261,15 +282,14 @@ def qf_state_prediction(state, lookback, horizon, predictors):
     :param predictors:
     :return:
     """
-    clusters = pd.read_pickle('../analysis/clusters_{}.pkl'.format(state))
+    clusters = pd.read_pickle(f'../analysis/clusters_{state}.pkl')
 
     for cluster in clusters:
         data_full, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
                                             data_types=DATA_TYPES, cols=predictors)
         for city in cluster:
             if os.path.isfile(
-                    './saved_models/{}/qf_metrics_{}.pkl'.format(
-                        state, city)):
+                    f'./saved_models/{state}/qf_metrics_{city}.pkl'):
                 print('done')
                 continue
 
@@ -299,17 +319,18 @@ def qf_state_prediction(state, lookback, horizon, predictors):
             preds25 = np.empty((len(data_lag), horizon))
             preds975 = np.empty((len(data_lag), horizon))
             metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
-                                          'mean_squared_error', 'mean_squared_log_error',
-                                          'median_absolute_error', 'r2_score'))
+                                          'mean_squared_error', 'median_absolute_error', 'r2_score'))
             for d in range(1, horizon + 1):
                 tgt = targets[d][:len(X_train)]
                 tgtt = targets[d][len(X_train):]
 
-                model = rolling_forecasts(X_train, target=tgt, horizon=horizon)
-                dump(model, 'saved_models/quantile_forest/{}/{}_city_model_{}W.joblib'.format(state, city, d))
-                pred = model.predict(X_data[:len(targets[d])], quantile=50)
-                pred25 = model.predict(X_data[:len(targets[d])], quantile=2.5)
-                pred975 = model.predict(X_data[:len(targets[d])], quantile=97.5)
+                model25 = rolling_forecasts(X_train, target=tgt, quantile=0.025, horizon=horizon)
+                model50 = rolling_forecasts(X_train, target=tgt, quantile=0.5, horizon=horizon)
+                model975 = rolling_forecasts(X_train, target=tgt, quantile=0.975, horizon=horizon)
+                # dump(model, f'saved_models/quantile_forest/{state}/{city}_city_model_{d}W.joblib')
+                pred = model50.predict(X_data[:len(targets[d])])
+                pred25 = model25.predict(X_data[:len(targets[d])])
+                pred975 = model975.predict(X_data[:len(targets[d])])
 
                 dif = len(data_lag) - len(pred)
                 if dif > 0:
@@ -320,11 +341,11 @@ def qf_state_prediction(state, lookback, horizon, predictors):
                 preds25[:, (d - 1)] = pred25
                 preds975[:, (d - 1)] = pred975
 
-                pred_m = model.predict(X_test[(d - 1):])
+                pred_m = model50.predict(X_test[(d - 1):])
                 metrics[d] = calculate_metrics(pred_m, tgtt)
 
-            metrics.to_pickle('{}/{}/qf_metrics_{}.pkl'.format('saved_models/quantile_forest', state, city))
-            dump(model, 'saved_models/quantile_forest/{}_{}_state_model.joblib'.format(state, city))
+            metrics.to_pickle(f'saved_models/quantile_lgbm/{state}/qlgbm_metrics_{city}.pkl')
+            # dump(model, 'saved_models/quantile_forest/{}_{}_state_model.joblib'.format(state, city))
             plot_prediction(preds, preds25, preds975, targets[1], city_name, len(X_train))
             # plt.show()
 
