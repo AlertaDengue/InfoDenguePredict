@@ -34,7 +34,7 @@ def correlation(df_1, df_2):
     corr_list = []
     for col in df_1.columns:
         df = pd.concat((df_1[col], df_2[col]), axis=1).fillna(method='ffill')
-        corr = spd.pdist(df.T.as_matrix(), metric='correlation')
+        corr = spd.pdist(df.T.values, metric='correlation')
         corr_list.append(corr[0])
     return np.nanmean(corr_list)
 

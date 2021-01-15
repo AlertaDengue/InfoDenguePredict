@@ -27,7 +27,9 @@ def get_alerta_table(municipio=None, state=None, doenca='dengue'):
     :param state: full name of state, with first letter capitalized: "Cear
     :return: Pandas dataframe
     """
-    estados = {'RJ': 'Rio de Janeiro', 'ES': 'Espírito Santo', 'PR': 'Paraná', 'CE': 'Ceará'}
+    estados = {'RJ': 'Rio de Janeiro', 'ES': 'Espírito Santo', 'PR': 'Paraná', 'CE': 'Ceará',
+               'MA': 'Maranhão', 'MG': 'Minas Gerais', 'SC': 'Santa Catarina',
+               }
     if state in estados:
         state = estados[state]
     conexao = create_engine("postgresql://{}:{}@{}/{}".format(config('PSQL_USER'),

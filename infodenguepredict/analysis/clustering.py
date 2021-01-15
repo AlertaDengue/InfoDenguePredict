@@ -59,7 +59,7 @@ def llf(id):
 
 if __name__ == "__main__":
 
-    for STATE in ['CE']:#['PR', 'CE', 'ES']:
+    for STATE in ['RJ']:#['PR', 'CE', 'ES']:
         Z, name_ind = create_cluster(STATE, CLUSTER_VARS, COLOR_THRESHOLD)
 
         plt.figure(figsize=(10, 25))

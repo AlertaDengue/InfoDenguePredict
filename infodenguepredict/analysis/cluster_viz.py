@@ -46,15 +46,17 @@ def cluster_viz(geocode, clusters, loginc=False):
 
 
 if __name__ == "__main__":
-    renderer = hv.Store.renderers['bokeh']
-    renderer.dpi = 600
+    # renderer = hv.Store.renderers['bokeh']
+    # renderer.dpi = 600
     if not os.path.exists('cluster_figs'):
         os.mkdir('cluster_figs')
-    for STATE in ['ES']:
+    for STATE in ['MA', 'MG']:
         clusters = pd.read_pickle('clusters_{}.pkl'.format(STATE))
 
         for c in clusters:
             if len(c) == 1:
                 continue
             plot = cluster_viz(c[0], clusters)
-            renderer.save(plot, 'cluster_figs/cluster_{}'.format(str(c[0])), 'png')
+            # renderer.save(plot, 'cluster_figs/cluster_{}'.format(str(c[0])), 'png')
+            # p = hv.render(plot, backend='bokeh')
+            hv.save(plot,  f'cluster_figs/cluster_{str(c[0])}.png',backend='matplotlib')
