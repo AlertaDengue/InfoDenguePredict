@@ -25,3 +25,5 @@ scikit-garden
 duecredit
 shap
 joblib
+optuna
+lightgbm
