@@ -59,7 +59,7 @@ def llf(id):
 
 if __name__ == "__main__":
 
-    for STATE in ['RJ']:#['PR', 'CE', 'ES']:
+    for STATE in ['SC']:#['PR', 'CE', 'ES']:
         Z, name_ind = create_cluster(STATE, CLUSTER_VARS, COLOR_THRESHOLD)
 
         plt.figure(figsize=(10, 25))
@@ -76,7 +76,7 @@ if __name__ == "__main__":
             color_threshold=COLOR_THRESHOLD * max(Z[:, 2])
         )
 
-        plt.savefig('{}/cluster{}_{}.png'.format('../models/saved_models', STATE, COLOR_THRESHOLD), dpi=300, bbox_inches='tight')
+        plt.savefig(f'{"../models/saved_models"}/cluster{STATE}_{COLOR_THRESHOLD}.png', dpi=300, bbox_inches='tight')
 
         plt.show()
 

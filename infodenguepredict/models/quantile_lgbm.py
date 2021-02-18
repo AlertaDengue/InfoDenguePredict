@@ -328,9 +328,9 @@ def state_forecast(state, horizon=4, lookback=4, plot=False):
             pred5 = np.empty(horizon)
             pred95 = np.empty(horizon)
             for d in range(1, horizon + 1):
-                model5 = load(f'saved_models/quantile_forest/{state}/{city}_city_model5_{d}W.joblib')
-                model50 = load(f'saved_models/quantile_forest/{state}/{city}_city_model50_{d}W.joblib')
-                model95 = load(f'saved_models/quantile_forest/{state}/{city}_city_model95_{d}W.joblib')
+                model5 = load(f'saved_models/quantile_lgbm/{state}/{city}_city_model5_{d}W.joblib')
+                model50 = load(f'saved_models/quantile_lgbm/{state}/{city}_city_model50_{d}W.joblib')
+                model95 = load(f'saved_models/quantile_lgbm/{state}/{city}_city_model95_{d}W.joblib')
 
                 X_data = data_lag.iloc[-1:]
                 pred[d-1] = model50.predict(X_data)
@@ -351,8 +351,8 @@ def plot_forecast(data, pred, pred5, pred95, predindex, city_name):
     ax1.plot(predindex, pred, 'r-*', label='median')
     ax1.fill_between(predindex, pred5, pred95, color='b', alpha=0.3)
     ax.set_title(f"Forecast for {city_name}")
-    ax.set_xticks(rotation=70)
-    ax1.set_xticks(rotation=70)
+    ax.get_xaxis().Tick(labelrotation=70)
+    ax1.get_xaxis().Tick(labelrotation=70)
     ax.legend(loc=0)
     ax1.legend(loc=0)
     ax.grid()
@@ -415,9 +415,9 @@ def qf_state_prediction(state, lookback, horizon, predictors):
                 model50 = build_and_fit(X_train, target=tgt, quantile=0.5)
                 model95 = build_and_fit(X_train, target=tgt, quantile=0.95)
 
-                dump(model5, f'saved_models/quantile_forest/{state}/{city}_city_model5_{d}W.joblib')
-                dump(model50, f'saved_models/quantile_forest/{state}/{city}_city_model50_{d}W.joblib')
-                dump(model95, f'saved_models/quantile_forest/{state}/{city}_city_model95_{d}W.joblib')
+                dump(model5, f'saved_models/quantile_lgbm/{state}/{city}_city_model5_{d}W.joblib')
+                dump(model50, f'saved_models/quantile_lgbm/{state}/{city}_city_model50_{d}W.joblib')
+                dump(model95, f'saved_models/quantile_lgbm/{state}/{city}_city_model95_{d}W.joblib')
 
                 pred = model50.predict(X_data[:len(targets[d])])
                 pred5 = model5.predict(X_data[:len(targets[d])])
@@ -448,6 +448,7 @@ if __name__ == "__main__":
     # preds = qf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
     # for STATE in ['RJ', 'PR', 'CE']:
     # qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
+
     # qf_single_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
 
     # model, preds, preds25, preds975, X_train, targets, data_lag = qf_prediction(CITY, STATE,
@@ -455,4 +456,4 @@ if __name__ == "__main__":
     #                                                                             lookback=LOOK_BACK)
     # print(model.feature_importances_)
 
-    frcsts = state_forecast(STATE, PREDICTION_WINDOW, LOOK_BACK, True)
+    frcsts = state_forecast(STATE, PREDICTION_WINDOW, LOOK_BACK, plot=True)
