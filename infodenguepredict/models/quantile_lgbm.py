@@ -319,7 +319,7 @@ def state_forecast(state, horizon=4, lookback=4, plot=False):
         data_full, group = get_cluster_data(geocode=clust[0], clusters=clusters,
                                             data_types=DATA_TYPES, cols=PREDICTORS)
         data_lag = build_lagged_features(data_full, lookback)
-        predindex = data_full.index.shift(4, freq='W')[-horizon:]
+        predindex = data_lag.index.shift(periods=horizon, freq='W')[-horizon:]
         for city in clust:
             if city in forecasts:
                 continue
@@ -337,7 +337,7 @@ def state_forecast(state, horizon=4, lookback=4, plot=False):
                 pred5[d-1] = model5.predict(X_data)
                 pred95[d-1] = model95.predict(X_data)
 
-            city_name = get_city_names([city, 0])[0][1]
+            city_name = f'{get_city_names([city, 0])[0][1]} ({state}). \nCluster size: {len(clust)}'
             forecasts[city] = (data_lag[target].iloc[-lookback:], pred, pred5, pred95, predindex, city_name)
             if plot:
                 plot_forecast(*forecasts[city])
@@ -346,17 +346,21 @@ def state_forecast(state, horizon=4, lookback=4, plot=False):
 
 
 def plot_forecast(data, pred, pred5, pred95, predindex, city_name):
-    fig, [ax, ax1] = plt.subplots(2, 1)
+    fig, [ax, ax1] = plt.subplots(1, 2, sharey=True)
+    fig.subplots_adjust(wspace=0)
     data.plot(ax=ax, label='cases')
-    ax1.plot(predindex, pred, 'r-*', label='median')
+    ax1.plot_date(predindex, pred, 'r-*', label='median')
     ax1.fill_between(predindex, pred5, pred95, color='b', alpha=0.3)
-    ax.set_title(f"Forecast for {city_name}")
-    ax.get_xaxis().Tick(labelrotation=70)
-    ax1.get_xaxis().Tick(labelrotation=70)
+    ax1.set_title(f"Forecast for {city_name}")
+    ax.set_title("Latest data")
+    plt.setp(ax.get_xticklabels(), rotation=70)
+    plt.setp(ax1.get_xticklabels(), rotation=70)
     ax.legend(loc=0)
     ax1.legend(loc=0)
     ax.grid()
     ax1.grid()
+    c_name = city_name.split('\n')[0]
+    plt.savefig(f"saved_models/quantile_lgbm/{STATE}/forecast_{c_name}.png")
     plt.show()
 
 
