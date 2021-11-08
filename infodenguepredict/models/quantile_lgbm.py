@@ -13,7 +13,7 @@ from infodenguepredict.data.infodengue import get_cluster_data, get_city_names, 
 from infodenguepredict.predict_settings import *
 
 import lightgbm as lgb
-import optuna.integration.lightgbm as lgbt  # Tuner for lgbm
+
 
 
 def get_cities_from_state(state):
@@ -448,10 +448,9 @@ def qf_state_prediction(state, lookback, horizon, predictors):
 
 
 if __name__ == "__main__":
-    # target = 'casos_est_{}'.format(CITY)
-    # preds = qf_prediction(CITY, STATE, target, PREDICTION_WINDOW, LOOK_BACK)
+    # preds = qf_prediction(CITY, STATE, PREDICTION_WINDOW, LOOK_BACK)
     # for STATE in ['RJ', 'PR', 'CE']:
-    # qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
+    qf_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
 
     # qf_single_state_prediction(STATE, LOOK_BACK, PREDICTION_WINDOW, PREDICTORS)
 

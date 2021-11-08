@@ -1,5 +1,5 @@
 import pkg_resources
-from .models.deeplearning import lstm
+# from .models.deeplearning import lstm
 
 
 try:
@@ -7,6 +7,6 @@ try:
 except:
     __version__ = 'unknown'
 
-models = {
-    'lstm': lstm
-}
+# models = {
+#     'lstm': lstm
+# }

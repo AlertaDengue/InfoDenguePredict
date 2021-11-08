@@ -44,6 +44,7 @@ PREDICTORS = [
 HIDDEN = 4
 LOOK_BACK = 4
 BATCH_SIZE = 1
+SPLIT = 0.75
 PREDICTION_WINDOW = 4  # weeks
 CITY = 3304557 # Rio de Janeiro
 # city = 3303500 # Nova Iguaçu
