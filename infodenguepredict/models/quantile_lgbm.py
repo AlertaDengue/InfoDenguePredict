@@ -1,5 +1,7 @@
+
 import numpy as np
 import pandas as pd
+import joblib
 import os
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
@@ -153,7 +155,20 @@ def get_best_features(model, X_train):
     
     return features 
 
-def plot_pdp_ice_plot(city, state, model50, X_train, features,d, path='quantile_lgbm', save = True):
+# function to identify if the array have all the elements equal:
+def equal_values(array):
+    
+    if list(array).count(array[0])==len(array):
+        
+        out = True
+        
+    else:
+        out = False 
+        
+    return out 
+
+
+def plot_pdp_ice_plot(city, state, model50, X_train, features,d, doenca, path='quantile_lgbm', save = True):
     
     display = PartialDependenceDisplay.from_estimator(model50, X_train, features, kind = 'both',
     subsample = 200, grid_resolution=20, random_state=0,
@@ -167,40 +182,48 @@ def plot_pdp_ice_plot(city, state, model50, X_train, features,d, path='quantile_
     display.figure_.suptitle('Partial dependence plots and ICE plots - ' + city + ' - ' + str(d) + ' week')
     
     if save:
-        if not os.path.exists(f'../results/{path}/{STATE}/pdp_ice_plots'):
-            os.mkdir(f'../results/{path}/{STATE}/pdp_ice_plots')
+        if not os.path.exists(f'../results/{path}/{STATE}/{doenca}/pdp_ice_plots'):
+            os.mkdir(f'../results/{path}/{STATE}/{doenca}/pdp_ice_plots')
 
-        display.figure_.savefig(f'../results/{path}/{STATE}/pdp_ice_plots/qlgbm_{city}_pdp_ice_{d}.png', dpi=300)
+        display.figure_.savefig(f'../results/{path}/{STATE}/{doenca}/pdp_ice_plots/qlgbm_{city}_pdp_ice_{d}.png', dpi=300)
     plt.show()
     return None
 
-def plot_ale_plots(city, state, model50, X_train, features, d, path='quantile_lgbm', save= True):
+def plot_ale_plots(city, state, model50, X_train, features, d, doenca, path='quantile_lgbm', save= True):
     
+    # The if codes below will evalue if the features array is not a array full of zeros in order to avoid errors 
     fig, axes = plt.subplots(2,3, figsize = (15,8))
+    
+    if equal_values(X_train[features[0]].values)== False:
 
-    al_1 = ale(X=X_train, model=model50, feature=[features[0]], grid_size=20, include_CI=True,contour = True, fig = fig,             ax=axes[0,0])
+        al_1 = ale(X=X_train, model=model50, feature=[features[0]], grid_size=20, include_CI=True,contour = True, fig = fig,             ax=axes[0,0])
+        
+    if equal_values(X_train[features[1]].values)== False:
 
-    al_2 = ale(X=X_train, model=model50, feature=[features[1]], grid_size=20, include_CI=True,contour = True, fig = fig,             ax=axes[0,1])
+        al_2 = ale(X=X_train, model=model50, feature=[features[1]], grid_size=20, include_CI=True,contour = True, fig = fig,             ax=axes[0,1])
 
-    al_3 = ale(X=X_train, model=model50, feature=[features[2]], grid_size=20, include_CI=True,contour = True, fig = fig,             ax=axes[0,2])
+    if equal_values(X_train[features[2]].values)== False:
+        al_3 = ale(X=X_train, model=model50, feature=[features[2]], grid_size=20, include_CI=True,contour = True, fig = fig,             ax=axes[0,2])
 
-    al_4 = ale(X=X_train, model=model50, feature=[features[3]], grid_size=20, include_CI=True,contour = True, fig = fig,             ax=axes[1,0])
+    if equal_values(X_train[features[3]].values)== False:
+        al_4 = ale(X=X_train, model=model50, feature=[features[3]], grid_size=20, include_CI=True,contour = True, fig = fig,             ax=axes[1,0])
 
-    al_5 = ale(X=X_train, model=model50, feature=[features[4]], grid_size=20, include_CI=True,contour = True, fig = fig,             ax=axes[1,1])
+    if equal_values(X_train[features[4]].values)== False:
+        al_5 = ale(X=X_train, model=model50, feature=[features[4]], grid_size=20, include_CI=True,contour = True, fig = fig,             ax=axes[1,1])
 
     fig.subplots_adjust(hspace=0.3, wspace = 0.2)
     
     fig.suptitle('ALE plots - ' + city + ' - ' + str(d) + ' week', y=1.05)
     if save:
-        if not os.path.exists(f'../results/{path}/{STATE}/ale_plots'):
-            os.mkdir(f'../results/{path}/{STATE}/ale_plots')
+        if not os.path.exists(f'../results/{path}/{STATE}/{doenca}/ale_plots'):
+            os.mkdir(f'../results/{path}/{STATE}/{doenca}/ale_plots')
 
-        fig.savefig(f'../results/{path}/{STATE}/ale_plots/qlgbm_{city}_ale_{d}.png', dpi=300)
+        fig.savefig(f'../results/{path}/{STATE}/{doenca}/ale_plots/qlgbm_{city}_ale_{d}.png', dpi=300)
     plt.show()
     return None
 
 
-def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='quantile_lgbm', save=True):
+def plot_prediction(preds, preds25, preds975, ydata, title, train_size, doenca,  path='quantile_lgbm', save=True):
     plt.clf()
     plt.plot(ydata, 'k-', label='data')
 
@@ -243,10 +266,10 @@ def plot_prediction(preds, preds25, preds975, ydata, title, train_size, path='qu
     plt.xticks(rotation=70)
     plt.legend(loc=0)
     if save:
-        if not os.path.exists(f'../results/{path}/{STATE}/plots'):
-            os.mkdir(f'../results/{path}/{STATE}/plots')
+        if not os.path.exists(f'../results/{path}/{STATE}/{doenca}/plots'):
+            os.mkdir(f'../results/{path}/{STATE}/{doenca}/plots')
 
-        plt.savefig(f'../results/{path}/{STATE}/plots/qlgbm_{title}_ss.png', dpi=300)
+        plt.savefig(f'../results/{path}/{STATE}/{doenca}/plots/qlgbm_{title}_ss.png', dpi=300)
     plt.show()
     return None
 
@@ -366,6 +389,7 @@ def qf_single_state_prediction(state, lookback, horizon, predictors):
         metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
                                       'mean_squared_error'
                                       'median_absolute_error', 'r2_score'))
+
         for d in range(1, horizon + 1):
             tgt = targets[d][:len(X_train)]
             tgtt = targets[d][len(X_train):]
@@ -439,7 +463,7 @@ def plot_forecast(data, pred, pred5, pred95, predindex, city_name):
     plt.show()
 
 
-def qf_state_prediction(state, lookback, horizon, predictors):
+def qf_state_prediction(state, lookback, horizon, predictors, doenca):
     """
     RQF prediction based on cluster of cities
     :param state:
@@ -452,10 +476,10 @@ def qf_state_prediction(state, lookback, horizon, predictors):
 
     for cluster in clusters:
         data_full, group = get_cluster_data(geocode=cluster[0], clusters=clusters,
-                                            data_types=DATA_TYPES, cols=PREDICTORS)
+                                            data_types=DATA_TYPES, cols=PREDICTORS, doenca=doenca)
         for city in cluster:
             if os.path.isfile(
-                    f'../results/quantile_lgbm/{state}/metrics/qlgbm_metrics_{city}.pkl'):
+                    f'../results/quantile_lgbm/{state}/{doenca}metrics/qlgbm_metrics_{city}.pkl'):
                 print('done')
                 continue
 
@@ -473,13 +497,13 @@ def qf_state_prediction(state, lookback, horizon, predictors):
                 else:
                     targets[d] = data_lag[target].shift(-(d - 1))[:-(d - 1)]
 
-            X_data = data_lag  # .drop(casos_est_columns, axis=1)
+            X_data = data_lag.drop(casos_est_columns, axis=1)
             if len(X_data) == 0:
                 print(f"No data available for {city}, {state}")
                 continue
             X_train, X_test, y_train, y_test = train_test_split(X_data, data_lag[target],
                                                                 train_size=SPLIT, test_size=1 - SPLIT, shuffle=False)
-
+            
             city_name = get_city_names([city, 0])[0][1]
             preds = np.empty((len(data_lag), horizon))
             preds5 = np.empty((len(data_lag), horizon))
@@ -488,6 +512,8 @@ def qf_state_prediction(state, lookback, horizon, predictors):
                                           'mean_squared_error', 'median_absolute_error', 'r2_score'))
             
             metrics_quantile = pd.DataFrame()
+
+            print(city_name)
             
             for d in range(1, horizon + 1):
                 tgt = targets[d][:len(X_train)]
@@ -499,13 +525,13 @@ def qf_state_prediction(state, lookback, horizon, predictors):
                 
                 all_models = {"q 0.05": model5, "q 0.5": model50, "q 0.95": model95}
 
-                dump(model5, f'../results/quantile_lgbm/{state}/saved_models/{city}_city_model5_{d}W.joblib')
-                dump(model50, f'../results/quantile_lgbm/{state}/saved_models/{city}_city_model50_{d}W.joblib')
-                dump(model95, f'../results/quantile_lgbm/{state}/saved_models/{city}_city_model95_{d}W.joblib')
+                dump(model5, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_city_model5_{d}W.joblib')
+                dump(model50, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_city_model50_{d}W.joblib')
+                dump(model95, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_city_model95_{d}W.joblib')
                 
                 features = get_best_features(model50, X_train)
-                plot_pdp_ice_plot(city_name, state, model50, X_train, features,d)
-                plot_ale_plots(city_name, state, model50, X_train, features, d)
+                plot_pdp_ice_plot(city_name, state, model50, X_train, features,d, doenca)
+                plot_ale_plots(city_name, state, model50, X_train, features, d, doenca)
                 
                 pred = model50.predict(X_data[:len(targets[d])])
                 pred5 = model5.predict(X_data[:len(targets[d])])
@@ -525,14 +551,141 @@ def qf_state_prediction(state, lookback, horizon, predictors):
                 
                 metrics_quantile = pd.concat([metrics_quantile, compute_quantiles_metrics(all_models,X_test[(d - 1):], tgtt, d)])
 
-            metrics.to_pickle(f'../results/quantile_lgbm/{state}/metrics/qlgbm_metrics_{city}.pkl')
-            metrics_quantile.to_pickle(f'../results/quantile_lgbm/{state}/metrics_quantile/qlgbm_metrics_quantile_{city}.pkl')
-            dump(model50, f'../results/quantile_lgbm/{state}/saved_models/{city}_state_model50.joblib')
-            dump(model5, f'../results/quantile_lgbm/{state}/saved_models/{city}_state_model5.joblib')
-            dump(model95, f'../results/quantile_lgbm/{state}/saved_models/{city}_state_model50.joblib')
-            plot_prediction(preds, preds5, preds95, targets[1], city_name, len(X_train))
+            metrics.to_pickle(f'../results/quantile_lgbm/{state}/{doenca}/metrics/qlgbm_metrics_{city}.pkl')
+            metrics_quantile.to_pickle(f'../results/quantile_lgbm/{state}/{doenca}/metrics_quantile/qlgbm_metrics_quantile_{city}.pkl')
+            dump(model50, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_state_model50.joblib')
+            dump(model5, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_state_model5.joblib')
+            dump(model95, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_state_model50.joblib')
+            plot_prediction(preds, preds5, preds95, targets[1], city_name, len(X_train), doenca)
             # plt.show()
 
+def transf_lgbm_prediction(state, horizon, lookback, predictors, doenca='chik'):
+    with open('../analysis/clusters_{}.pkl'.format(state), 'rb') as fp:
+        clusters = pickle.load(fp)
+        
+    for cluster in clusters:
+        data, group = get_cluster_data(geocode=cluster[0], clusters=clusters,                      data_types=DATA_TYPES, cols=predictors, doenca=doenca)
+        
+        for city in cluster: 
+            
+            #################### parei aqui 
+
+            target = 'casos_est_{}'.format(city)
+            casos_est_columns = ['casos_est_{}'.format(i) for i in group]
+            # casos_columns = ['casos_{}'.format(i) for i in group]
+
+            # data = data_full.drop(casos_columns, axis=1)
+            data_lag = build_lagged_features(data, lookback)
+            data_lag.dropna()
+            data_lag = data_lag['2016-01-01':]
+            targets = {}
+            
+            for d in range(1, horizon + 1):
+                if d == 1:
+                    targets[d] = data_lag[target].shift(-(d - 1))
+                else:
+                    targets[d] = data_lag[target].shift(-(d - 1))[:-(d - 1)]
+
+            X_data = data_lag.drop(casos_est_columns, axis=1)
+            
+            if len(X_data) == 0:
+                print(f"No data available for {city}, {state}")
+                continue
+                
+            X_train, X_test, y_train, y_test = train_test_split(X_data,                         data_lag[target], train_size=SPLIT, test_size=1 - SPLIT, shuffle=False)
+            
+            city_name = get_city_names([city, 0])[0][1]
+            
+            city_name = get_city_names([city, 0])[0][1]
+            preds = np.empty((len(data_lag), horizon))
+            preds5 = np.empty((len(data_lag), horizon))
+            preds95 = np.empty((len(data_lag), horizon))
+            metrics = pd.DataFrame(index=('mean_absolute_error', 'explained_variance_score',
+                                          'mean_squared_error', 'median_absolute_error', 'r2_score'))
+            
+            metrics_quantile = pd.DataFrame()
+            
+            for d in range(1, horizon + 1):
+                tgt = targets[d][:len(X_train)]
+                tgtt = targets[d][len(X_train):]
+
+                #loading the dengue models 
+                model5 = joblib.load(f'../results/quantile_lgbm/{state}/dengue/saved_models/{city}_city_model5_{d}W.joblib')
+                
+                model50 = joblib.load(f'../results/quantile_lgbm/{state}/dengue/saved_models/{city}_city_model50_{d}W.joblib')
+ 
+                model95 = joblib.load(f'../results/quantile_lgbm/{state}/dengue/saved_models/{city}_city_model95_{d}W.joblib')
+    
+                params = {
+                'n_jobs': 4,
+                'max_depth': 4,
+                'max_bin': 63,
+                'num_leaves': 255,
+                'min_data_in_leaf': 1,
+                'subsample': 0.9,
+                'n_estimators': 80,
+                'learning_rate': 0.1,
+                'colsample_bytree': 0.9,
+                'boosting_type': 'gbdt'
+                 }
+
+         
+                # Defining the new models 
+                new_model5 = lgb.LGBMRegressor(objective='quantile', alpha=0.05, **params)
+    
+                new_model50 = lgb.LGBMRegressor(objective='quantile', alpha=0.5, **params)
+        
+                new_model95 = lgb.LGBMRegressor(objective='quantile', alpha=0.95, **params)
+            
+                # training the models with de cchikungunya data 
+                # the ini_model parameter will add the load dengues models in the fitting
+                
+                new_model5.fit(X_train.values, tgt, init_model = model5)
+                new_model50.fit(X_train.values, tgt, init_model = model50)
+                new_model95.fit(X_train.values, tgt, init_model = model95)
+                
+                # saving the models 
+                
+                dump(model5, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_city_model5_{d}W.joblib')
+                dump(model50, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_city_model50_{d}W.joblib')
+                dump(model95, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_city_model95_{d}W.joblib')
+            
+                all_models = {"q 0.05": new_model5, "q 0.5": new_model50, "q 0.95": new_model95}
+                
+                print(city_name)
+                
+                features = get_best_features(new_model50, X_train)
+                plot_pdp_ice_plot(city_name, state, new_model50, X_train, features,d, doenca)
+                plot_ale_plots(city_name, state, new_model50, X_train, features, d, doenca)
+                
+                pred = new_model50.predict(X_data[:len(targets[d])])
+                pred5 = new_model5.predict(X_data[:len(targets[d])])
+                pred95 = new_model95.predict(X_data[:len(targets[d])])
+
+                dif = len(data_lag) - len(pred)
+                if dif > 0:
+                    pred = list(pred) + ([np.nan] * dif)
+                    pred5 = list(pred5) + ([np.nan] * dif)
+                    pred95 = list(pred95) + ([np.nan] * dif)
+                preds[:, (d - 1)] = pred
+                preds5[:, (d - 1)] = pred5
+                preds95[:, (d - 1)] = pred95
+
+                pred_m = model50.predict(X_test[(d - 1):])
+                metrics[d] = calculate_metrics(pred_m, tgtt)
+                
+                metrics_quantile = pd.concat([metrics_quantile, compute_quantiles_metrics(all_models,X_test[(d - 1):], tgtt, d)])
+
+            metrics.to_pickle(f'../results/quantile_lgbm/{state}/{doenca}/metrics/qlgbm_metrics_{city}.pkl')
+            
+            metrics_quantile.to_pickle(f'../results/quantile_lgbm/{state}/{doenca}/metrics_quantile/qlgbm_metrics_qauntile_{city}.pkl')
+           
+            dump(new_model50, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_state_model50.joblib')
+            dump(new_model5, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_state_model5.joblib')
+            dump(new_model95, f'../results/quantile_lgbm/{state}/{doenca}/saved_models/{city}_state_model50.joblib')
+            plot_prediction(preds, preds5, preds95, targets[1], city_name + '-' + str(doenca), len(X_train), doenca)
+            # plt.show()
+    return 
 
 if __name__ == "__main__":
     # preds = qf_prediction(CITY, STATE, PREDICTION_WINDOW, LOOK_BACK)
