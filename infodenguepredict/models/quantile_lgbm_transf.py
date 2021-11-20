@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> 38e84e7769de0f88b7b03515229fa480fa2328fb
 '''
 --------------------------------------------------------------------------------------------
 This notebook has the script to run the quantile_lgbm_model with the yeo-johnson or box-cox
@@ -525,4 +529,8 @@ if __name__ == "__main__":
     #                                                                             lookback=LOOK_BACK)
     # print(model.feature_importances_)
 
+<<<<<<< HEAD
     frcsts = state_forecast(STATE, PREDICTION_WINDOW, LOOK_BACK, plot=True)
+=======
+    frcsts = state_forecast(STATE, PREDICTION_WINDOW, LOOK_BACK, plot=True)
+>>>>>>> 38e84e7769de0f88b7b03515229fa480fa2328fb
