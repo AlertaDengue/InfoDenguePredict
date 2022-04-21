@@ -32,7 +32,11 @@ def get_alerta_table(municipio=None, state=None, doenca='dengue'):
     """
     estados = {'RJ': 'Rio de Janeiro', 'ES': 'Espírito Santo', 'PR': 'Paraná', 'CE': 'Ceará',
                'MA': 'Maranhão', 'MG': 'Minas Gerais', 'SC': 'Santa Catarina', 'GO': 'Goiás',
-               'SP': 'São Paulo'
+               'SP': 'São Paulo', 'RS': 'Rio Grande do Sul', 'RN': 'Rio Grande do Norte',
+               'MS': 'Mato Grosso do Sul', 'MT': 'Mato Grosso', 'BA': 'Bahia', 'SE': 'Sergipe',
+               'AL': 'Alagoas', 'PE': 'Pernambuco', 'PB': 'Paraíba', 'TO': 'Tocantins', 'PI': 'Piauí',
+               'DF': 'Distrito Federal', 'PA': 'Pará', 'AM': 'Amazonas', 'RO': 'Rondônia', 'AC': 'Acre',
+               'RR': 'Roraima', 'AP': 'Amapá'
                }
     if state in estados:
         state = estados[state]
