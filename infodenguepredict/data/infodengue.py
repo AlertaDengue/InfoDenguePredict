@@ -50,6 +50,9 @@ def get_alerta_table(municipio=None, state=None, doenca='dengue'):
         tabela = 'Historico_alerta_chik'
     elif doenca == 'zika':
         tabela = 'Historico_alerta_zika'
+    else:
+        tabela = 'Historico_alerta'
+
     if municipio is None:
         sql = 'select h.* from "Municipio"."{}" h JOIN "Dengue_global"."Municipio" m ON h.municipio_geocodigo=m.geocodigo where m.uf=\'{}\';'.format(tabela,
             state)
