@@ -7,7 +7,6 @@ for remote database access, we recommend establishing an SSH tunnel:
 import pandas as pd
 import random
 from sqlalchemy import create_engine
-# from decouple import config
 from dotenv import load_dotenv
 import os
 import pickle
@@ -38,12 +37,7 @@ def get_alerta_table(municipio=None, state=None, doenca='dengue'):
                'DF': 'Distrito Federal', 'PA': 'Pará', 'AM': 'Amazonas', 'RO': 'Rondônia', 'AC': 'Acre',
                'RR': 'Roraima', 'AP': 'Amapá'
                }
-    if state in estados:
-        state = estados[state]
-    conexao = create_engine("postgresql://{}:{}@{}/{}".format(os.getenv('PSQL_USER'),
-                                                              os.getenv('PSQL_PASSWORD'),
-                                                              os.getenv('PSQL_HOST'),
-                                                              os.getenv('PSQL_DB')))
+
     if doenca == 'dengue':
         tabela = 'Historico_alerta'
     elif doenca == 'chik':
@@ -53,20 +47,50 @@ def get_alerta_table(municipio=None, state=None, doenca='dengue'):
     else:
         tabela = 'Historico_alerta'
 
+
+    engine = create_engine("postgresql://{}:{}@{}/{}".format(os.getenv('PSQL_USER'),
+                                                              os.getenv('PSQL_PASSWORD'),
+                                                              os.getenv('PSQL_HOST'),
+                                                              os.getenv('PSQL_DB')))
+
+    if state in estados:
+        state = estados[state]
+
     if municipio is None:
         sql = 'select h.* from "Municipio"."{}" h JOIN "Dengue_global"."Municipio" m ON h.municipio_geocodigo=m.geocodigo where m.uf=\'{}\';'.format(tabela,
             state)
 
-        df = pd.read_sql_query(sql, conexao, index_col='id')
+        df = pd.read_sql_query(sql, engine, index_col='id')
     else:
         df = pd.read_sql_query(
             'select * from "Municipio"."{}" where municipio_geocodigo={} ORDER BY "data_iniSE" ASC;'.format(tabela,
                 municipio),
-            conexao, index_col='id')
+            engine, index_col='id')
     df.data_iniSE = pd.to_datetime(df.data_iniSE)
     df.set_index('data_iniSE', inplace=True)
-    conexao.dispose()
+    engine.dispose()
+
     return df
+
+def get_full_alerta_table(doenca: str='dengue', output_dir='.'):
+    if doenca == 'dengue':
+        tabela = 'Historico_alerta'
+    elif doenca == 'chik':
+        tabela = 'Historico_alerta_chik'
+    elif doenca == 'zika':
+        tabela = 'Historico_alerta_zika'
+    else:
+        tabela = 'Historico_alerta'
+
+    engine = create_engine("postgresql://{}:{}@{}/{}".format(os.getenv('PSQL_USER'),
+                                                             os.getenv('PSQL_PASSWORD'),
+                                                             os.getenv('PSQL_HOST'),
+                                                             os.getenv('PSQL_DB')))
+
+    sql = f'select * from "Municipio"."{tabela}";'
+    with engine.connect().execution_options(stream_results=True) as conn:
+        for i, chunk in enumerate(pd.read_sql(sql, conn, chunksize=5000)):
+            chunk.to_parquet(os.path.join(output_dir,f'alerta_{doenca}_{i}.parquet'))
 
 
 def get_temperature_data(municipio=None):
