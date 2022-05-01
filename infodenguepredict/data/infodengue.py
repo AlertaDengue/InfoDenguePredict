@@ -72,7 +72,15 @@ def get_alerta_table(municipio=None, state=None, doenca='dengue'):
 
     return df
 
-def get_full_alerta_table(doenca: str='dengue', output_dir='.'):
+def get_full_alerta_table(doenca: str='dengue', output_dir='.', chunksize=5000, start_SE: int=202101):
+    """
+    saves Alerta Table for a disease in chunked parquet files startin on the specified Epi week
+    Args:
+        doenca: dengue|chik|zika
+        output_dir: path to save parquet files
+        chunksize: number of lines in the each chunk
+        start_SE: epidemic week in format YYYYEW. where 1<= EW <=52
+    """
     if doenca == 'dengue':
         tabela = 'Historico_alerta'
     elif doenca == 'chik':
@@ -87,10 +95,10 @@ def get_full_alerta_table(doenca: str='dengue', output_dir='.'):
                                                              os.getenv('PSQL_HOST'),
                                                              os.getenv('PSQL_DB')))
 
-    sql = f'select * from "Municipio"."{tabela}";'
+    sql = f'select * from "Municipio"."{tabela}" where "SE">={start_SE};'
     with engine.connect().execution_options(stream_results=True) as conn:
-        for i, chunk in enumerate(pd.read_sql(sql, conn, chunksize=5000)):
-            chunk.to_parquet(os.path.join(output_dir,f'alerta_{doenca}_{i}.parquet'))
+        for i, chunk in enumerate(pd.read_sql(sql, conn, chunksize=chunksize)):
+            chunk.to_parquet(os.path.join(output_dir,f'alerta_{doenca}_{start_SE}-_{i}.parquet'))
 
 
 def get_temperature_data(municipio=None):
