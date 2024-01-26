@@ -1,5 +1,6 @@
 # Temporary and binary files
 *.pkl
+*.joblib
 *.csv
 *~
 *.py[cod]
