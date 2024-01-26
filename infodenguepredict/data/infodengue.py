@@ -12,12 +12,66 @@ import os
 import pickle
 
 load_dotenv()
-db_engine = create_engine("postgresql://{}:{}@{}/{}".format(
+
+def make_connection():
+
+    conexao = create_engine("postgresql://{}:{}@{}:{}/{}".format(
     os.getenv('PSQL_USER'),
     os.getenv('PSQL_PASSWORD'),
     os.getenv('PSQL_HOST'),
+    os.getenv('PSQL_PORT'),
     os.getenv('PSQL_DB')
 ))
+    return conexao
+
+def get_cases_table(municipio=None, state=None, doenca='dengue'):
+    """
+    Pulls the data from a single city, cities from a state or all cities from the InfoDengue
+    database
+    :param doenca: 'dengue'|'chik'|'zika'
+    :param municipio: geocode (one city) or None (all)
+    :param state: full name of state, with first letter capitalized: "Cear
+    :return: Pandas dataframe
+    """
+    estados = {'RJ': 'Rio de Janeiro', 'ES': 'Espírito Santo', 'PR': 'Paraná', 'CE': 'Ceará',
+               'MA': 'Maranhão', 'MG': 'Minas Gerais', 'SC': 'Santa Catarina', 'GO': 'Goiás',
+               'SP': 'São Paulo', 'RS': 'Rio Grande do Sul', 'RN': 'Rio Grande do Norte',
+               'MS': 'Mato Grosso do Sul', 'MT': 'Mato Grosso', 'BA': 'Bahia', 'SE': 'Sergipe',
+               'AL': 'Alagoas', 'PE': 'Pernambuco', 'PB': 'Paraíba', 'TO': 'Tocantins', 'PI': 'Piauí',
+               'DF': 'Distrito Federal', 'PA': 'Pará', 'AM': 'Amazonas', 'RO': 'Rondônia', 'AC': 'Acre',
+               'RR': 'Roraima', 'AP': 'Amapá'
+               }
+
+    if doenca == 'dengue':
+        tabela = 'Historico_alerta'
+    elif doenca == 'chik':
+        tabela = 'Historico_alerta_chik'
+    elif doenca == 'zika':
+        tabela = 'Historico_alerta_zika'
+    else:
+        tabela = 'Historico_alerta'
+
+
+    engine = make_connection()
+
+    if state in estados:
+        state = estados[state]
+
+    if municipio is None:
+        sql = 'select h."data_iniSE", h.id, h.casos from "Municipio"."{}" h JOIN "Dengue_global"."Municipio" m ON h.municipio_geocodigo=m.geocodigo where m.uf=\'{}\';'.format(tabela,
+            state)
+
+        df = pd.read_sql_query(sql, engine, index_col='id')
+    else:
+        df = pd.read_sql_query(
+            'select "data_iniSE", id, casos from "Municipio"."{}" where municipio_geocodigo={} ORDER BY "data_iniSE" ASC;'.format(tabela,
+                municipio),
+            engine, index_col='id')
+    df.data_iniSE = pd.to_datetime(df.data_iniSE)
+    df.set_index('data_iniSE', inplace=True)
+    engine.dispose()
+
+    return df
 
 
 def get_alerta_table(municipio=None, state=None, doenca='dengue'):
@@ -48,10 +102,7 @@ def get_alerta_table(municipio=None, state=None, doenca='dengue'):
         tabela = 'Historico_alerta'
 
 
-    engine = create_engine("postgresql://{}:{}@{}/{}".format(os.getenv('PSQL_USER'),
-                                                              os.getenv('PSQL_PASSWORD'),
-                                                              os.getenv('PSQL_HOST'),
-                                                              os.getenv('PSQL_DB')))
+    engine = make_connection()
 
     if state in estados:
         state = estados[state]
@@ -90,10 +141,7 @@ def get_full_alerta_table(doenca: str='dengue', output_dir='.', chunksize=5000, 
     else:
         tabela = 'Historico_alerta'
 
-    engine = create_engine("postgresql://{}:{}@{}/{}".format(os.getenv('PSQL_USER'),
-                                                             os.getenv('PSQL_PASSWORD'),
-                                                             os.getenv('PSQL_HOST'),
-                                                             os.getenv('PSQL_DB')))
+    engine = make_connection()
 
     sql = f'select * from "Municipio"."{tabela}" where "SE">={start_SE};'
     with engine.connect().execution_options(stream_results=True) as conn:
@@ -107,10 +155,7 @@ def get_temperature_data(municipio=None):
     :param municipio: geocode of the city
     :return: pandas dataframe
     """
-    conexao = create_engine("postgresql://{}:{}@{}/{}".format(os.getenv('PSQL_USER'),
-                                                              os.getenv('PSQL_PASSWORD'),
-                                                              os.getenv('PSQL_HOST'),
-                                                              os.getenv('PSQL_DB')))
+    conexao = make_connection()
 
     if municipio is None:
         df = pd.read_sql_query('select * from "Municipio"."Clima_wu" ORDER BY "data_dia" ASC;',
@@ -131,10 +176,8 @@ def get_tweet_data(municipio=None) -> pd.DataFrame:
     :param municipio: city geocode.
     :return: pandas dataframe
     """
-    conexao = create_engine("postgresql://{}:{}@{}/{}".format(os.getenv('PSQL_USER'),
-                                                              os.getenv('PSQL_PASSWORD'),
-                                                              os.getenv('PSQL_HOST'),
-                                                              os.getenv('PSQL_DB')))
+    conexao = make_connection()
+    
     if municipio is None:
         df = pd.read_sql_query('select * from "Municipio"."Tweet" ORDER BY "data_dia" ASC;',
                                conexao, index_col='id')
@@ -156,10 +199,7 @@ def get_rain_data(geocode, sensor="chuva"):
     :param sensor: either "chuva" or "intensidade_precipitaçao"
     :return: pandas dataframe.
     """
-    conexao = create_engine("postgresql://{}:{}@{}/{}".format(os.getenv('PSQL_USER'),
-                                                              os.getenv('PSQL_PASSWORD'),
-                                                              os.getenv('PSQL_HOST'),
-                                                              os.getenv('PSQL_DB')))
+    conexao = make_connection()
 
     sql = "SELECT * FROM \"Municipio\".\"Clima_cemaden\" WHERE \"Estacao_cemaden_codestacao\" similar to '{}%' and sensor='{}'".format(
         geocode, sensor)
@@ -177,6 +217,8 @@ def get_city_names(geocodigos):
     :param geocodigos: list of 7-digit geocodes.
     :return:
     """
+    db_engine  = make_connection()
+
     with db_engine.connect() as conexao:
         res = conexao.execute(
             'select geocodigo, nome from "Dengue_global"."Municipio" WHERE geocodigo in {};'.format(tuple(geocodigos)))
